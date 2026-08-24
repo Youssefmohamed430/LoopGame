@@ -1,4 +1,4 @@
-# SHIFT Game — Database ER Diagram & Schema Documentation
+﻿# SHIFT Game — Database ER Diagram & Schema Documentation
 **SQL Server (Unified `dbo` Schema) | ASP.NET Identity | .NET 8+ EF Core | Version 2.2 | Graduate Project — Helwan University, CS Department**
 
 ---
@@ -45,17 +45,15 @@ SHIFT is a narrative-driven web game teaching introductory C programming (Helwan
 The database is implemented on **SQL Server** using a **single unified database schema (`dbo`)** for all tables. Logical domain grouping (Identity, Narrative Content, Player Progress, Economy, Assessment, AI Audit) is enforced at the C# application and Entity Framework Core layer rather than splitting tables across multiple physical database schemas.
 
 **Key Design & Architectural Principles:**
-- **Unified Database Schema (`dbo`):** All 24 tables reside in the default `dbo` schema, streamlining database deployment, connection strings, migrations, and SQL Server user permissions.
+- **Unified Database Schema (`dbo`):** All 25 tables reside in the default `dbo` schema, streamlining database deployment, connection strings, migrations, and SQL Server user permissions.
 - **ASP.NET Core Identity Integration:** Native ASP.NET Core Identity (`IdentityUser<int>`, `IdentityRole<int>`) manages security credentials in `ApplicationUser`, linked 1:1 to a domain-specific `Player` profile.
 - **Consequence-as-Beat Model:** Consequences reuse the `StoryBeat` table (with `beat_type = 'consequence'` and `shift_id` pointing to the target shift). The lightweight `Consequence` table links a consequence beat to the `Choice` that triggers it, and the `ConsequenceQueue` tracks per-player pending/fired status at runtime.
 - **Primary & Foreign Keys:** All entities use `INT IDENTITY` or `BIGINT IDENTITY` surrogate primary keys.
 - **Precision Timestamps & Currencies:** All timestamps are `DATETIME2(3)` in UTC. Currency values use `DECIMAL(10,2)` representing Egyptian Pounds (EGP).
-- **JSON Storage & Validation:** Complex dynamic states use `NVARCHAR(MAX)` with SQL Server `ISJSON()` check constraints and map to strongly-typed C# record models in EF Core 8 via `HasConversion` / `ToJson()`.
-- **Student Privacy:** Raw academic IDs are **never stored**; only their SHA-256 hex hashes (`CHAR(64)`) are maintained.
 
 ---
 
-## 2. ER Diagram (Text Notation)
+## 2. Entity Relationship Diagram (ASCII crow's-foot)
 
 The following diagram uses crow's-foot notation to depict entity relationships across all database tables in the unified `dbo` schema.  
 `||--o{` = one-to-many · `||--||` = one-to-one · `}o--o{` = many-to-many (resolved via junction)
@@ -72,28 +70,28 @@ The following diagram uses crow's-foot notation to depict entity relationships a
 ┌──────┐ ┌──────────┐┌──────────┐ ┌────────────┐  ┌──────────────────┐┌─────────────┐   ┌──────────────────┐
 │ User │ │ Refresh  ││PlayerSave│ │PlayerChoice│  │ AssessmentEvent  ││PlayerEconomy│   │  PlayerSideTask  │
 │ Role │ │  Token   │└──────────┘ └─────┬──────┘  └──────────────────┘└──────┬──────┘   └────────┬─────────┘
-└──────┘ └──────────┘                   │ *                                  │ 1                 │ * evaluated by
-                                        ▼                                    ▼ *                 ▼
-                                  ┌──────────┐                         ┌───────────┐    ┌───────────────────┐
-                                  │  Choice  │──┐                      │Transaction│    │SideTaskSubmission │
-                                  └─────┬────┘  │ consequence_id       └───────────┘    └───────────────────┘
-                                        │ *     │ (nullable)                                     │ * template
-                                        ▼       ▼                                                ▼
-                              ┌────────────────────────┐                                ┌───────────────────┐
-                              │       StoryBeat        │                                │ SideTaskTemplate  │
-                              │ beat_type: narrative    │                                └────────┬──────────┘
-                              │          | consequence  │                                         │ 1
-                              └─────┬──────────────────┘                                         ▼ *
-                                    │ *                                                 ┌───────────────────┐
-                                    ▼                                                   │  AiGenerationLog  │
-                              ┌──────────┐     1       * ┌──────────────┐               └───────────────────┘
-                              │  Shift   ├───────────────┤ PracticeTask │
-                              └──────────┘               └──────┬───────┘
-                                    ▲                            │ 1
-                                    │                            ▼ *
-                              ┌─────┴──────────┐         ┌──────────────┐
-                              │  Consequence   │         │PracticeAttempt│
-                              │ beat_id (1:1)  │         └──────────────┘
+└──────┘ └──────────┘                   │ *                                  │ 1                 │ * hints
+                                        ▼                                    ▼ *                 ├──────────────────┐
+                                  ┌──────────┐                         ┌───────────┐             │                  │ * evaluated by
+                                  │  Choice  │──┐                      │Transaction│             ▼ *                ▼
+                                  └─────┬────┘  │ consequence_id       └───────────┘    ┌─────────────────┐┌───────────────────┐
+                                        │ *     │ (nullable)                            │  SideTaskHint   ││SideTaskSubmission │
+                                        ▼       ▼                                       └─────────────────┘└────────┬──────────┘
+                              ┌────────────────────────┐                                                    │ * template
+                              │       StoryBeat        │                                                    ▼
+                              │ beat_type: narrative   │                                           ┌───────────────────┐
+                              │          | consequence │                                           │ SideTaskTemplate  │
+                              └─────┬──────────────────┘                                           └────────┬──────────┘
+                                    │ *                                                                     │ 1
+                                    ▼                                                                       ▼ *
+                              ┌──────────┐     1       * ┌──────────────┐                          ┌───────────────────┐
+                              │  Shift   ├───────────────┤ PracticeTask │                          │  AiGenerationLog  │
+                              └──────────┘               └──────┬───────┘                          └───────────────────┘
+                                    ▲                           │ 1
+                                    │                           ▼ *
+                              ┌─────┴──────────┐        ┌──────────────┐
+                              │  Consequence   │        │PracticeAttempt│
+                              │ beat_id (1:1)  │        └──────────────┘
                               └────────┬───────┘
                                        │ 1
                                        ▼ *
@@ -113,7 +111,7 @@ Using a single default database schema (`dbo`) simplifies maintenance while keep
 |---|---|---|---|
 | **Identity & Access** | `ApplicationUser`, `ApplicationRole`, `ApplicationUserRole`, `ClassCode`, `RefreshToken` | Authentication, authorization, password security, session refresh tokens. | Hourly |
 | **Content & Narrative** | `Shift`, `StoryBeat`, `Choice`, `Consequence`, `PracticeTask`, `TestCase`, `SideTaskTemplate` | Pre-authored story shifts, dialogue beats, choices, tasks, and test blueprints. | Weekly |
-| **Runtime Player State** | `Player`, `PlayerSave`, `PlayerChoice`, `PlayerShiftProgress`, `PracticeAttempt`, `ConsequenceQueue`, `PlayerSideTask`, `SideTaskSubmission` | Active gameplay progress, LoopOS desktop saves, code submissions, queued consequences. | Hourly |
+| **Runtime Player State** | `Player`, `PlayerSave`, `PlayerChoice`, `PlayerShiftProgress`, `PracticeAttempt`, `ConsequenceQueue`, `PlayerSideTask`, `SideTaskSubmission`, `SideTaskHint` | Active gameplay progress, LoopOS desktop saves, code submissions, queued consequences, AI side task hints. | Hourly |
 | **Economy & Finance** | `PlayerEconomy`, `Transaction`, `ShopItem`, `PlayerInventory`, `SahmSubscription` | Virtual EGP balance ledger, salary management, virtual shop, Sahm AI subscriptions. | Daily |
 | **Stealth Assessment** | `AssessmentEvent`, `ConceptMasterySnapshot` | Educational research analytics, stealth learning event logs, concept mastery tracking. | Daily |
 | **AI & System Audit** | `AiGenerationLog`, `AuditLog` | LLM call logging, prompt audits, admin security audit trails, retention cleanup. | Daily |
@@ -698,6 +696,40 @@ CREATE TABLE SideTaskSubmission (
 
 ---
 
+#### `SideTaskHint`
+
+**Purpose:** Stores progressive AI-generated hint levels (e.g., Level 1 Nudge, Level 2 Pseudocode/Guidance, Level 3 Code Solution) associated with an active AI side task assigned to a player (`PlayerSideTask`). Each side task can have multiple hints (1:N relationship).
+
+```sql
+CREATE TABLE SideTaskHint (
+    hint_id         INT           IDENTITY(1,1) PRIMARY KEY,
+    side_task_id    INT           NOT NULL,             -- FK → PlayerSideTask (1:N)
+    hint_level      TINYINT       NOT NULL CHECK (hint_level BETWEEN 1 AND 3),
+    hint_text       NVARCHAR(MAX) NOT NULL,
+    egp_cost        DECIMAL(8,2)  NOT NULL DEFAULT 0,
+    is_unlocked     BIT           NOT NULL DEFAULT 0,
+    unlocked_at     DATETIME2(3)  NULL,
+    created_at      DATETIME2(3)  NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT FK_SideTaskHint_SideTask FOREIGN KEY (side_task_id) REFERENCES PlayerSideTask(side_task_id) ON DELETE CASCADE,
+    CONSTRAINT UQ_SideTaskHint_Task_Level UNIQUE (side_task_id, hint_level)
+);
+```
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `hint_id` | `INT` | PK, IDENTITY | Surrogate primary key |
+| `side_task_id` | `INT` | FK → `PlayerSideTask`, NOT NULL | The active side task instance this hint belongs to |
+| `hint_level` | `TINYINT` | CHECK 1–3 | Progressive hint level (1 = Conceptual Nudge, 2 = Structural Guidance, 3 = Code Snippet) |
+| `hint_text` | `NVARCHAR(MAX)` | NOT NULL | AI-generated hint text content |
+| `egp_cost` | `DECIMAL(8,2)` | DEFAULT 0 | Currency cost/penalty in EGP for unlocking this hint |
+| `is_unlocked` | `BIT` | DEFAULT 0 | 1 if player has unlocked/viewed this hint level |
+| `unlocked_at` | `DATETIME2(3)` | NULL | UTC timestamp when player unlocked the hint |
+| `created_at` | `DATETIME2(3)` | NOT NULL | UTC timestamp when AI pipeline generated the hint |
+```
+
+---
+
 ### 4.4 Economy & Finance Domain
 
 #### `PlayerEconomy`
@@ -1241,6 +1273,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ConsequenceQueue> ConsequenceQueues => Set<ConsequenceQueue>();
     public DbSet<PlayerSideTask> PlayerSideTasks => Set<PlayerSideTask>();
     public DbSet<SideTaskSubmission> SideTaskSubmissions => Set<SideTaskSubmission>();
+    public DbSet<SideTaskHint> SideTaskHints => Set<SideTaskHint>();
     public DbSet<PlayerEconomy> PlayerEconomies => Set<PlayerEconomy>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<ShopItem> ShopItems => Set<ShopItem>();
@@ -1293,6 +1326,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .WithMany()
             .HasForeignKey(c => c.ConsequenceId)
             .IsRequired(false);
+
+        // SideTaskHint 1:N with PlayerSideTask
+        modelBuilder.Entity<SideTaskHint>()
+            .HasOne<PlayerSideTask>()
+            .WithMany()
+            .HasForeignKey(h => h.SideTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 ```
@@ -1315,6 +1355,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 | `Transaction` | `IX_Transaction_Player_Date` | `(player_id, created_at DESC)` | Composite | Player ledger & financial history |
 | `AssessmentEvent` | `IX_Assessment_Player_Type` | `(player_id, event_type, recorded_at DESC)` | Composite | AI weakest concept calculation |
 | `AiGenerationLog` | `IX_AiLog_Expiry` | `(expires_at)` | Standard | Scheduled 2-year retention cleanup job |
+| `SideTaskHint` | `IX_SideTaskHint_Task_Level` | `(side_task_id, hint_level)` | Composite Unique | Fast lookup of side task hints by level |
 
 ---
 
