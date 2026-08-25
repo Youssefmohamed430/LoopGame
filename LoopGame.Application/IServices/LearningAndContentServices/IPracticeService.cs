@@ -2,6 +2,6 @@
 
 public interface IPracticeService
 {
-    PracticeDto GetTaskByShiftId(int ShiftId);
-    void SubmitCode(string code);
+    PracticeDto GetTaskAsync(int TaskId,int PlayerId);
+    CodeSubmitResponseDto SubmitCode(int PlayerId, CodeSubmitRequestDto code);
 }
