@@ -16,7 +16,7 @@ public class AssessmentEventConfiguration : IEntityTypeConfiguration<AssessmentE
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_Assessment_EventType",
-            "event_type IN ('choice_submission','practice_attempt','hint_request'," +
+            "\"EventType\" IN ('choice_submission','practice_attempt','hint_request'," +
             "'side_task_submission','desktop_interaction','consequence_trigger'," +
             "'gate_cleared','shift_completed')");
 

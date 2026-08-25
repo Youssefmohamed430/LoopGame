@@ -13,7 +13,7 @@ public class ConsequenceConfiguration : IEntityTypeConfiguration<Consequence>
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_Consequence_InjectPosition",
-            "inject_position IN ('start', 'end')");
+            "\"InjectPosition\" IN ('start', 'end')");
 
         // 1:1 with StoryBeat (beat_id is unique on Consequence side)
         builder.HasOne(c => c.Beat)

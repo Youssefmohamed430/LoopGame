@@ -15,7 +15,7 @@ public class SideTaskSubmissionConfiguration : IEntityTypeConfiguration<SideTask
                    v => Enum.Parse<ChoiceTier>(v));
 
         builder.HasCheckConstraint("CHK_SideTaskSubmission_Tier",
-            "tier IN ('Ideal', 'Acceptable', 'Debt', 'Mistake')");
+            "\"Tier\" IN ('Ideal', 'Acceptable', 'Debt', 'Mistake')");
 
         // PostgreSQL native jsonb column
         builder.Property(s => s.TestResults)

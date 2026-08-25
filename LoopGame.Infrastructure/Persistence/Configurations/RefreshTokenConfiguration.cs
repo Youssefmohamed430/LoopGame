@@ -38,7 +38,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 
         // Filtered composite index: active session lookup & token rotation
         builder.HasIndex(t => new { t.UserId, t.ExpiresAt })
-               .HasFilter("revoked_at IS NULL")
+               .HasFilter("\"RevokedAt\" IS NULL")
                .HasDatabaseName("IX_RefreshToken_User_Expiry");
     }
 }

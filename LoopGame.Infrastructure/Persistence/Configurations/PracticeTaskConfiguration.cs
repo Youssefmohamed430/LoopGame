@@ -24,7 +24,7 @@ public class PracticeTaskConfiguration : IEntityTypeConfiguration<PracticeTask>
                .HasDefaultValue("Standard");
 
         builder.HasCheckConstraint("CHK_PracticeTask_Difficulty",
-            "difficulty IN ('SpacedRetrieval', 'Standard', 'Challenge')");
+            "\"Difficulty\" IN ('SpacedRetrieval', 'Standard', 'Challenge')");
 
         builder.Property(t => t.MaxAttempts)
                .HasColumnType("smallint")

@@ -16,7 +16,7 @@ public class ConceptMasterySnapshotConfiguration : IEntityTypeConfiguration<Conc
                .HasPrecision(5, 4);
 
         builder.HasCheckConstraint("CHK_Mastery_Score",
-            "mastery_score BETWEEN 0 AND 1");
+            "\"MasteryScore\" BETWEEN 0 AND 1");
 
         builder.Property(s => s.EvidenceCount)
                .HasDefaultValue(0);

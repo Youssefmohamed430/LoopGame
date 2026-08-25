@@ -13,7 +13,7 @@ public class SahmSubscriptionConfiguration : IEntityTypeConfiguration<SahmSubscr
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_Sahm_Tier",
-            "tier IN ('Free','Pro','Team','Enterprise')");
+            "\"Tier\" IN ('Free','Pro','Team','Enterprise')");
 
         builder.Property(s => s.ActivatedAt)
                .HasColumnType("timestamp with time zone")

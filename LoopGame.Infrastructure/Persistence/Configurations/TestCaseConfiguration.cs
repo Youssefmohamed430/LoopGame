@@ -12,8 +12,8 @@ public class TestCaseConfiguration : IEntityTypeConfiguration<TestCase>
 
         // CHECK: belongs to exactly one parent (task XOR template)
         builder.HasCheckConstraint("CHK_TestCase_Parent",
-            "(task_id IS NOT NULL AND template_id IS NULL) OR " +
-            "(task_id IS NULL AND template_id IS NOT NULL)");
+            "(\"TaskId\" IS NOT NULL AND \"TemplateId\" IS NULL) OR " +
+            "(\"TaskId\" IS NULL AND \"TemplateId\" IS NOT NULL)");
 
         builder.HasOne(t => t.Task)
                .WithMany(p => p.TestCases)

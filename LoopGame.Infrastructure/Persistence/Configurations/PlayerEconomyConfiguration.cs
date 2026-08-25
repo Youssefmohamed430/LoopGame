@@ -16,13 +16,13 @@ public class PlayerEconomyConfiguration : IEntityTypeConfiguration<PlayerEconomy
                .HasDefaultValue(0m);
 
         builder.HasCheckConstraint("CHK_Economy_Balance",
-            "balance >= 0");
+            "\"Balance\" >= 0");
 
         builder.Property(e => e.SalaryTier)
                .HasDefaultValue(1);
 
         builder.HasCheckConstraint("CHK_Economy_SalaryTier",
-            "salary_tier BETWEEN 1 AND 5");
+            "\"SalaryTier\" BETWEEN 1 AND 5");
 
         builder.Property(e => e.TotalEarned)
                .HasPrecision(12, 2)

@@ -22,7 +22,7 @@ public class ShopItemConfiguration : IEntityTypeConfiguration<ShopItem>
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_ShopItem_Category",
-            "category IN ('sahm_tier','camera','desk_item','workspace')");
+            "\"Category\" IN ('sahm_tier','camera','desk_item','workspace')");
 
         builder.Property(i => i.Description)
                .HasMaxLength(500);
@@ -31,7 +31,7 @@ public class ShopItemConfiguration : IEntityTypeConfiguration<ShopItem>
                .HasPrecision(10, 2);
 
         builder.HasCheckConstraint("CHK_ShopItem_Price",
-            "price > 0");
+            "\"Price\" > 0");
 
         // PlayerRank? enum → nullable string (with space for ExperiencedJunior)
         builder.Property(i => i.RankRequired)

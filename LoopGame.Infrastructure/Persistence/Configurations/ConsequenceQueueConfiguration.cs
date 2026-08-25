@@ -9,11 +9,14 @@ public class ConsequenceQueueConfiguration : IEntityTypeConfiguration<Consequenc
 
         builder.Property(q => q.Status)
                .HasColumnType("varchar(20)")
-               .HasDefaultValue("pending")
+               .HasDefaultValue(ConsequenceStatus.pending)
+               .HasConversion(
+                   v => v.ToString().ToLower(),
+                   v => Enum.Parse<ConsequenceStatus>(v, true))
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_Queue_Status",
-            "status IN ('pending', 'fired', 'dismissed')");
+            "\"Status\" IN ('pending', 'fired', 'dismissed')");
 
         builder.Property(q => q.QueuedAt)
                .HasColumnType("timestamp with time zone")

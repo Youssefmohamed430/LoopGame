@@ -15,7 +15,7 @@ public class PracticeAttemptConfiguration : IEntityTypeConfiguration<PracticeAtt
                    v => Enum.Parse<ChoiceTier>(v));
 
         builder.HasCheckConstraint("CHK_PracticeAttempt_Tier",
-            "tier IN ('Ideal', 'Acceptable', 'Debt', 'Mistake')");
+            "\"Tier\" IN ('Ideal', 'Acceptable', 'Debt', 'Mistake')");
 
         // PostgreSQL native jsonb column
         builder.Property(a => a.TestResults)

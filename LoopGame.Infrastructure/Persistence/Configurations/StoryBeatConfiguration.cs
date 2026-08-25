@@ -19,7 +19,7 @@ public class StoryBeatConfiguration : IEntityTypeConfiguration<StoryBeat>
         builder.Property(b => b.BeatType)
                .HasColumnName("beat_type")
                .HasColumnType("varchar(20)")
-               .HasDefaultValue("narrative")
+               .HasDefaultValue(BeatType.Narrative)
                .HasConversion(
                    v => v == BeatType.Narrative ? "narrative" : "consequence",
                    v => v == "narrative" ? BeatType.Narrative : BeatType.Consequence);
@@ -35,11 +35,13 @@ public class StoryBeatConfiguration : IEntityTypeConfiguration<StoryBeat>
         builder.Property(b => b.SenderName)
                .HasMaxLength(100);
 
-        // content_json: owned JSON type (EF Core native JSON -> jsonb in PostgreSQL)
-        builder.OwnsOne(b => b.ContentJson, owned =>
-        {
-            owned.ToJson("content_json");
-        });
+        // content_json: JSON column via HasConversion (jsonb in PostgreSQL)
+        builder.Property(b => b.ContentJson)
+               .HasColumnName("content_json")
+               .HasColumnType("jsonb")
+               .HasConversion(
+                   v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
+                   v => v == null ? null : JsonSerializer.Deserialize<StoryBeatContent>(v, JsonOptions)!);
 
         // desktop_event: nullable JSON via HasConversion (jsonb in PostgreSQL)
         builder.Property(b => b.DesktopEvent)
@@ -59,8 +61,8 @@ public class StoryBeatConfiguration : IEntityTypeConfiguration<StoryBeat>
 
         // CHECK: narrative beats must have sequence_order; consequence beats must not
         builder.HasCheckConstraint("CHK_Beat_SequenceOrder",
-            "(beat_type = 'narrative' AND sequence_order IS NOT NULL) OR " +
-            "(beat_type = 'consequence' AND sequence_order IS NULL)");
+            "(beat_type = 'narrative' AND \"SequenceOrder\" IS NOT NULL) OR " +
+            "(beat_type = 'consequence' AND \"SequenceOrder\" IS NULL)");
 
         builder.HasOne(b => b.Shift)
                .WithMany(s => s.StoryBeats)

@@ -12,7 +12,7 @@ public class SideTaskHintConfiguration : IEntityTypeConfiguration<SideTaskHint>
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_SideTaskHint_Level",
-            "hint_level BETWEEN 1 AND 3");
+            "\"HintLevel\" BETWEEN 1 AND 3");
 
         builder.Property(h => h.EgpCost)
                .HasPrecision(8, 2)

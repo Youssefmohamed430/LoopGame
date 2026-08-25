@@ -26,7 +26,7 @@ public class ChoiceConfiguration : IEntityTypeConfiguration<Choice>
                .HasMaxLength(500);
 
         builder.HasCheckConstraint("CHK_Choice_Index",
-            "choice_index BETWEEN 1 AND 4");
+            "\"ChoiceIndex\" BETWEEN 1 AND 4");
 
         // Unique: one choice per index per beat
         builder.HasIndex(c => new { c.BeatId, c.ChoiceIndex })

@@ -12,7 +12,7 @@ public class Player
 
     // Navigations
     public Shift? CurrentShift { get; set; }
-    public PlayerSave? PlayerSave { get; set; }
+    public ICollection<PlayerSave> PlayerSaves { get; set; } = [];
     public ICollection<PlayerChoice> PlayerChoices { get; set; } = [];
     public ICollection<PlayerShiftProgress> ShiftProgresses { get; set; } = [];
     public ICollection<ConsequenceQueue> ConsequenceQueues { get; set; } = [];

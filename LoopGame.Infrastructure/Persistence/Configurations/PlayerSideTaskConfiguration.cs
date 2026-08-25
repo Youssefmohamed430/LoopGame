@@ -20,7 +20,7 @@ public class PlayerSideTaskConfiguration : IEntityTypeConfiguration<PlayerSideTa
                    v => Enum.Parse<SideTaskStatus>(v, true));
 
         builder.HasCheckConstraint("CHK_PlayerSideTask_Status",
-            "status IN ('active', 'submitted', 'abandoned', 'expired')");
+            "\"Status\" IN ('active', 'submitted', 'abandoned', 'expired')");
 
         // PostgreSQL native jsonb column
         builder.Property(t => t.FilledSlots)

@@ -2,6 +2,8 @@ namespace LoopGame.Infrastructure.Persistence.Configurations;
 
 public class PlayerSaveConfiguration : IEntityTypeConfiguration<PlayerSave>
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public void Configure(EntityTypeBuilder<PlayerSave> builder)
     {
         builder.ToTable("PlayerSave");
@@ -12,16 +14,18 @@ public class PlayerSaveConfiguration : IEntityTypeConfiguration<PlayerSave>
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_PlayerSave_SlotNumber",
-            "slot_number IN (1, 2, 3)");
+            "\"SlotNumber\" IN (1, 2, 3)");
 
         builder.Property(s => s.SaveLabel)
                .HasMaxLength(100);
 
-        // EF Core 9 native JSON: DesktopState ↔ desktop_state column (jsonb in PostgreSQL)
-        builder.OwnsOne(s => s.DesktopState, owned =>
-        {
-            owned.ToJson("desktop_state");
-        });
+        // PostgreSQL native jsonb column
+        builder.Property(s => s.DesktopState)
+               .HasColumnName("desktop_state")
+               .HasColumnType("jsonb")
+               .HasConversion(
+                   v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
+                   v => v == null ? null : JsonSerializer.Deserialize<DesktopState>(v, JsonOptions)!);
 
         builder.Property(s => s.SavedAt)
                .HasColumnType("timestamp with time zone")
@@ -33,7 +37,7 @@ public class PlayerSaveConfiguration : IEntityTypeConfiguration<PlayerSave>
                .HasDatabaseName("UQ_PlayerSave");
 
         builder.HasOne(s => s.Player)
-               .WithMany()
+               .WithMany(p => p.PlayerSaves)
                .HasForeignKey(s => s.PlayerId)
                .OnDelete(DeleteBehavior.Cascade);
     }
