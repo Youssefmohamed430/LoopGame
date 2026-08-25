@@ -1,5 +1,5 @@
 using LoopGame.Application.Dtos;
-using LoopGame.Application.Services;
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Extensions;
 using Microsoft.AspNetCore.Mvc;
 

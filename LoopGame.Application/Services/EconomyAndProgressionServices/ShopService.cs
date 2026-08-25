@@ -1,4 +1,6 @@
-namespace LoopGame.Application.Services;
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
+
+namespace LoopGame.Application.Services.EconomyAndProgressionServices;
 
 /// <summary>
 /// Shop catalogue browsing and purchases (UC-ECO-06, UC-ECO-09).

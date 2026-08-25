@@ -1,4 +1,4 @@
-namespace LoopGame.Application.Services;
+namespace LoopGame.Application.IServices.EconomyAndProgressionServices;
 
 public interface ISahmService
 {

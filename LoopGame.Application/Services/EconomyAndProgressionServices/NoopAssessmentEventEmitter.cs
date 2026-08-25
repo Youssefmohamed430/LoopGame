@@ -1,4 +1,6 @@
-namespace LoopGame.Application.Services;
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
+
+namespace LoopGame.Application.Services.EconomyAndProgressionServices;
 
 /// <summary>
 /// Stub implementation until the Assessment group delivers the real

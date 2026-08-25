@@ -1,3 +1,6 @@
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
+using LoopGame.Application.Services.EconomyAndProgressionServices;
+
 namespace LoopGame.Application;
 
 /// <summary>

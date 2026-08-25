@@ -1,4 +1,6 @@
-namespace LoopGame.Application.Services;
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
+
+namespace LoopGame.Application.Services.EconomyAndProgressionServices;
 
 /// <summary>
 /// Sahm AI assistant subscription & daily hint management (UC-SAHM-02..07).

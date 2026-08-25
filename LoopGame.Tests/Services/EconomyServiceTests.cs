@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Repositories;
+using LoopGame.Application.Services.EconomyAndProgressionServices;
 
 namespace LoopGame.Tests.Services;
 

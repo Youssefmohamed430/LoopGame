@@ -1,4 +1,6 @@
-namespace LoopGame.Application.Services;
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
+
+namespace LoopGame.Application.Services.EconomyAndProgressionServices;
 
 /// <summary>
 /// Sole application-layer writer of PlayerEconomy.Balance (HARD RULE 1).

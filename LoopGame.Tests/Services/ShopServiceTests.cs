@@ -1,3 +1,4 @@
+using LoopGame.Application.Services.EconomyAndProgressionServices;
 using Microsoft.EntityFrameworkCore;
 
 namespace LoopGame.Tests.Services;

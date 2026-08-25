@@ -1,4 +1,4 @@
-namespace LoopGame.Application.Services;
+namespace LoopGame.Application.IServices.EconomyAndProgressionServices;
 
 /// <summary>
 /// Fire-and-forget telemetry emitter (rule 6). Implementations must never block
