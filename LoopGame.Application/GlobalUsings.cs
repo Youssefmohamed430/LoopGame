@@ -1,6 +1,12 @@
 global using System;
 global using System.Collections.Generic;
 global using System.Linq;
+global using Domain.IRepositries;
+global using LoopGame.Domain.Constants;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.DependencyInjection;
+global using LoopGame.Application.Dtos;
+global using LoopGame.Application.Services;
 global using LoopGame.Domain.Abstractions;
 global using LoopGame.Domain.Enums;
 global using LoopGame.Domain.ValueObjects;

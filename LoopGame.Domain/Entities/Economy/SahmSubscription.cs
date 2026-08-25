@@ -10,7 +10,7 @@ public class SahmSubscription
     public int      PlayerId         { get; set; }
 
     /// <summary>Free | Pro | Team | Enterprise</summary>
-    public string   Tier             { get; set; } = "Free";
+    public SahmTier Tier { get; set; } = SahmTier.Free;
 
     public DateTime ActivatedAt      { get; set; } = DateTime.UtcNow;
     public byte     DailyHintLimit   { get; set; } = 3;

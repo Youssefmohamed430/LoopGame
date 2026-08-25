@@ -2,14 +2,35 @@ namespace LoopGame.Infrastructure.Persistence.Configurations;
 
 public class SahmSubscriptionConfiguration : IEntityTypeConfiguration<SahmSubscription>
 {
+    // Static helpers: switch expressions are not allowed inside EF HasConversion lambdas (expression trees)
+    private static string ToDbString(SahmTier v) => v switch
+    {
+        SahmTier.Pro        => "Pro",
+        SahmTier.Team       => "Team",
+        SahmTier.Enterprise => "Enterprise",
+        _ => "Free"
+    };
+
+    private static SahmTier FromDbString(string v) => v switch
+    {
+        "Pro"        => SahmTier.Pro,
+        "Team"       => SahmTier.Team,
+        "Enterprise" => SahmTier.Enterprise,
+        _ => SahmTier.Free
+    };
+
     public void Configure(EntityTypeBuilder<SahmSubscription> builder)
     {
         builder.ToTable("SahmSubscription");
         builder.HasKey(s => s.SubscriptionId);
 
+        // SahmTier enum → DB string (using static helpers); store values unchanged
         builder.Property(s => s.Tier)
                .HasColumnType("varchar(20)")
-               .HasDefaultValue("Free")
+               .HasConversion(
+                   v => ToDbString(v),
+                   v => FromDbString(v))
+               .HasDefaultValue(SahmTier.Free)
                .IsRequired();
 
         builder.HasCheckConstraint("CHK_Sahm_Tier",

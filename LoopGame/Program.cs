@@ -6,6 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Infrastructure services (registers AppDbContext with PostgreSQL using connection string from .env)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Add Application services
+builder.Services.AddApplication();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 

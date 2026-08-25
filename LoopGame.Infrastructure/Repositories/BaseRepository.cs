@@ -8,10 +8,10 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return entity;
     }
 
-    public void DeleteAsync(T entity)
+    public void Delete(T entity)
         => _context.Remove(entity);
 
-    public T Find(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public T Find(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>().AsNoTracking();
 
@@ -22,7 +22,7 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return entity.FirstOrDefault(criteria)!;
     }
 
-    public async Task<T> FindAsync(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public async Task<T> FindAsync(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>().AsTracking();
 
@@ -30,13 +30,14 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
             foreach (var include in includes ?? Array.Empty<string>())
                 entity = entity.Include(include);
 
-        return await entity.FirstOrDefaultAsync(criteria);
+        var found = await entity.FirstOrDefaultAsync(criteria);
+        return found!;
     }
 
     public async Task<TResult> FindWithAttributesAsync<TResult>(
     Expression<Func<T, bool>> criteria,
     Expression<Func<T, TResult>> selector,
-    string[] includes = null)
+    string[]? includes = null)
     {
         var query = _context.Set<T>().AsNoTracking();
 
@@ -44,13 +45,14 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
             foreach (var include in includes)
                 query = query.Include(include);
 
-        return await query?
-            .Where(criteria)?
-            .Select(selector)?
+        var match = await query
+            .Where(criteria)
+            .Select(selector)
             .FirstOrDefaultAsync();
+        return match!;
     }
 
-    public TDto Find<TDto>(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public TDto Find<TDto>(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>()
              .AsNoTracking();
@@ -62,7 +64,7 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return entity.Where(criteria).ProjectToType<TDto>().FirstOrDefault()!;
     }
 
-    public IQueryable<T> FindAll(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public IQueryable<T> FindAll(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>()
                     .AsNoTracking();
@@ -74,7 +76,7 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return entity.Where(criteria)!;
     }
 
-    public IQueryable<TDto> FindAll<TDto>(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public IQueryable<TDto> FindAll<TDto>(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>()
                 .AsNoTracking();
@@ -86,7 +88,7 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return entity.Where(criteria).ProjectToType<TDto>()!;
     }
 
-    public Task<IQueryable<TDto>> FindAllAsync<TDto>(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public Task<IQueryable<TDto>> FindAllAsync<TDto>(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>()
                 .AsNoTracking();
@@ -98,7 +100,7 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return Task.FromResult(entity.Where(criteria).ProjectToType<TDto>()!);
     }
 
-    public T FindWithTracking(Expression<Func<T, bool>> criteria, string[] includes = null)
+    public T FindWithTracking(Expression<Func<T, bool>> criteria, string[]? includes = null)
     {
         var entity = _context.Set<T>().AsTracking();
 

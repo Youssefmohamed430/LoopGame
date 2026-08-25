@@ -63,5 +63,13 @@ public class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         // Composite index: player ledger & financial history
         builder.HasIndex(t => new { t.PlayerId, t.CreatedAt })
                .HasDatabaseName("IX_Transaction_Player_Date");
+
+        // Salary idempotency backstop: at most ONE salary row per (player, shift).
+        // Filter uses ACTUAL DB column names ("transaction_type" via HasColumnName,
+        // "ReferenceId" default PascalCase naming).
+        builder.HasIndex(t => new { t.PlayerId, t.ReferenceId })
+               .HasDatabaseName("UX_Transaction_SalaryPerShift")
+               .IsUnique()
+               .HasFilter("\"transaction_type\" = 'salary' AND \"ReferenceId\" IS NOT NULL");
     }
 }

@@ -1,0 +1,15 @@
+global using Xunit;
+global using Moq;
+global using Microsoft.EntityFrameworkCore;
+global using Domain.IRepositries;
+global using LoopGame.Domain.Abstractions;
+global using LoopGame.Domain.Constants;
+global using LoopGame.Domain.Enums;
+global using LoopGame.Domain.Entities.Economy;
+global using LoopGame.Domain.Entities.Narrative;
+global using LoopGame.Domain.Entities.Player;
+global using LoopGame.Domain.ValueObjects;
+global using LoopGame.Infrastructure.Persistence;
+global using Infrastructure.Repositories;
+global using LoopGame.Application.Dtos;
+global using LoopGame.Application.Services;

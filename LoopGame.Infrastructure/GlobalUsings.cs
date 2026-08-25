@@ -15,6 +15,7 @@ global using Microsoft.Extensions.DependencyInjection;
 
 global using Domain;
 global using Domain.IRepositries;
+global using Infrastructure;
 global using Infrastructure.Repositories;
 
 global using LoopGame.Domain.Abstractions;

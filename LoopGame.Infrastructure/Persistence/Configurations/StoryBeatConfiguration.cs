@@ -41,7 +41,7 @@ public class StoryBeatConfiguration : IEntityTypeConfiguration<StoryBeat>
                .HasColumnType("jsonb")
                .HasConversion(
                    v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
-                   v => v == null ? null : JsonSerializer.Deserialize<StoryBeatContent>(v, JsonOptions)!);
+                   v => v == null ? null! : JsonSerializer.Deserialize<StoryBeatContent>(v, JsonOptions)!);
 
         // desktop_event: nullable JSON via HasConversion (jsonb in PostgreSQL)
         builder.Property(b => b.DesktopEvent)

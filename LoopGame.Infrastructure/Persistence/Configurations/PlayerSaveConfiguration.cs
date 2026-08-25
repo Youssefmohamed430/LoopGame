@@ -25,7 +25,7 @@ public class PlayerSaveConfiguration : IEntityTypeConfiguration<PlayerSave>
                .HasColumnType("jsonb")
                .HasConversion(
                    v => v == null ? null : JsonSerializer.Serialize(v, JsonOptions),
-                   v => v == null ? null : JsonSerializer.Deserialize<DesktopState>(v, JsonOptions)!);
+                   v => v == null ? null! : JsonSerializer.Deserialize<DesktopState>(v, JsonOptions)!);
 
         builder.Property(s => s.SavedAt)
                .HasColumnType("timestamp with time zone")

@@ -19,6 +19,7 @@ global using LoopGame.Domain.Entities.Narrative;
 global using LoopGame.Domain.Entities.Player;
 global using LoopGame.Domain.Entities.SideTask;
 
+global using LoopGame.Application;
 global using LoopGame.Infrastructure;
 global using LoopGame.Infrastructure.Identity;
 global using LoopGame.Infrastructure.Persistence;

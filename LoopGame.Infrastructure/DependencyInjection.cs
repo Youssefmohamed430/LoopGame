@@ -16,6 +16,9 @@ public static class DependencyInjection
                 npgsqlOptions => npgsqlOptions.MigrationsAssembly(
                     typeof(AppDbContext).Assembly.FullName)));
 
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IPlayerEconomyRepository, PlayerEconomyRepository>();
+
         return services;
     }
 }
