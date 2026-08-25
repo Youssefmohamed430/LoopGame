@@ -1,4 +1,4 @@
-﻿namespace LoopGame.Application
+namespace LoopGame.Application
 {
     public class Class1
     {

@@ -4,6 +4,20 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- CS0618: HasCheckConstraint is deprecated in EF9 in favour of ToTable(t => t.HasCheckConstraint()).
+         Non-breaking in EF 9.x; will be migrated when EF 10 removes the old overload. -->
+    <NoWarn>$(NoWarn);CS0618</NoWarn>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mapster" Version="10.0.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LoopGame.Domain\LoopGame.Domain.csproj" />
+  </ItemGroup>
 
 </Project>
