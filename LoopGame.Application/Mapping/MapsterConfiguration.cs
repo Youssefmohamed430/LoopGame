@@ -1,3 +1,6 @@
+using LoopGame.Domain.Entities.Narrative;
+using LoopGame.Application.Dtos;
+
 namespace LoopGame.Application.Mapping;
 
 public class MapsterConfiguration : IRegister
@@ -13,5 +16,16 @@ public class MapsterConfiguration : IRegister
 
         config.NewConfig<TestCase, TestCaseDto>();
         config.NewConfig<TestCaseDto, TestCase>();
+
+        // Choice Mappings
+        config.NewConfig<Choice, ChoiceDto>();
+        config.NewConfig<ChoiceDto, Choice>();
+
+        config.NewConfig<CreateChoiceDto, Choice>();
+        config.NewConfig<Choice, CreateChoiceDto>();
+
+        config.NewConfig<UpdateChoiceDto, Choice>()
+            .IgnoreNullValues(true);
     }
 }
+
