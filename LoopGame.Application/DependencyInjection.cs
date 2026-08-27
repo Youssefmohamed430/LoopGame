@@ -1,5 +1,6 @@
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
+using LoopGame.Application.Services.LearningAndContentServices;
 
 namespace LoopGame.Application;
 
@@ -18,6 +19,8 @@ public static class DependencyInjection
         services.AddScoped<IEconomyService, EconomyService>();
         services.AddScoped<IShopService, ShopService>();
         services.AddScoped<ISahmService, SahmService>();
+        services.AddScoped<IPracticeService, PracticeService>();
+        services.AddScoped<ICodeExecutionService,CodeExecutionService>();
 
         services.AddSingleton<IAssessmentEventEmitter, NoopAssessmentEventEmitter>();
 

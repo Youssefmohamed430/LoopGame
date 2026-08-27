@@ -8,7 +8,10 @@ public class MapsterConfiguration : IRegister
             .Map(dest => dest.ShiftNumber, src => src.Shift != null ? src.Shift.ShiftNumber : 0)
             .Map(dest => dest.TestCases, src => src.TestCases);
 
-        //config.NewConfig<TestCase,TestCaseDto>()
-            //.Map()
+        config.NewConfig<PracticeDto, PracticeTask>()
+            .Map(dest => dest.TestCases, src => src.TestCases);
+
+        config.NewConfig<TestCase, TestCaseDto>();
+        config.NewConfig<TestCaseDto, TestCase>();
     }
 }
