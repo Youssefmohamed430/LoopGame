@@ -50,19 +50,6 @@ public class PracticeService
         unitOfWork.SaveAsync().GetAwaiter().GetResult();
         return Result.Success(practice);
     }
-
-    //public Result<PracticeDto> DeletePracticeTask(int TaskId)
-    //{
-    //    var task = unitOfWork.GetRepository<PracticeTask>()
-    //        .Find<PracticeDto>(pt => pt.TaskId == TaskId, new string[] { "TestCases", "Shift", "Attempts" });
-
-    //    foreach (var test in task?.TestCases)
-    //    {
-    //        unitOfWork.GetRepository<TestCase>()
-    //            .DeleteAsync(test.Adapt<TestCase>());
-    //    }
-    //}
-
     public Result<PracticeDto> UpdatePracticeTask(int TaskId, PracticeDto practice)
     {
         var task = unitOfWork.GetRepository<PracticeTask>()
