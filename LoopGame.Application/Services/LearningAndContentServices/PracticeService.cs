@@ -1,3 +1,8 @@
+using LoopGame.Domain.Entities.Player;
+using System.Numerics;
+using System.Text.Json;
+using System.Threading.Tasks;
+
 namespace LoopGame.Application.Services.LearningAndContentServices;
 
 public class PracticeService
@@ -39,31 +44,53 @@ public class PracticeService
 
     public async Task<Result<CodeSubmitResponseDto>> SubmitCode(int PlayerId, CodeSubmitRequestDto code)
     {
+        // - Check Player Access
+
+        var player = await unitOfWork.GetRepository<Player>()
+            .FindAsync(p => p.PlayerId == PlayerId, new string[] { "PracticeAttempts", "ShiftProgresses" });
+
+        if (!player.CurrentShift.PracticeTasks.Any(t => t.TaskId == code.TaskId))
+        {
+            return Result.Failure<CodeSubmitResponseDto>(new Error("Forbidden.Access", "You are not allowed to access this task."));
+        }
+
         // 1. Get PracticeTask & Get TestCases
         var task = unitOfWork.GetRepository<PracticeTask>()
             .Find(t => t.TaskId == code.TaskId,new string[] { "TestCases", "Shift" });
-        
-        // 2. Execute Code
-        var result = await codeExecutionService.ExecuteAsync(code.SubmittedCode, task.TestCases.ToList());
-        
-        // 3. Claculate Tier
-        var passesCounter = 0;
-        var tier = ChoiceTier.Ideal;
-        foreach (var testcase in result)
+
+
+        if (task is null)
         {
-            if (testcase.Passed) passesCounter++;
+            return Result.Failure<CodeSubmitResponseDto>(
+                new Error(
+                    "NotFound.Task",
+                    $"Task with ID '{code.TaskId}' was not found."));
         }
 
-        double rate = passesCounter / result.Count;
-        if (rate == 1)
+
+        // - Check For MaxAttempts Validation
+
+        var attemptsCount = unitOfWork
+            .GetRepository<PracticeAttempt>()
+            .FindAll(a =>
+        a.PlayerId == PlayerId &&
+        a.TaskId == code.TaskId).Count();
+
+        if (task.MaxAttempts > 0 &&
+            attemptsCount >= task.MaxAttempts)
         {
-            // Based On Quality Of Code the tier will be Ideal or Acceptable 
+            return Result.Failure<CodeSubmitResponseDto>(
+                new Error(
+                    "Practice.MaxAttemptsReached",
+                    "Maximum attempts reached for this task."));
         }
-        else if (rate > .5)
-            tier = ChoiceTier.Debt;
-        else
-            tier = ChoiceTier.Mistake;
-        
+
+        // 2. Execute Code
+        var result = await codeExecutionService.ExecuteAsync(code.SubmittedCode, task.TestCases.ToList());
+
+        // 3. Claculate Tier
+        var tier = CalculateTier(result.ToList());
+
         // 4. INSERT PracticeAttempt
         var practiceAttemptes = new PracticeAttempt()
         {
@@ -71,22 +98,66 @@ public class PracticeService
             TaskId = code.TaskId, 
             SubmittedCode = code.SubmittedCode,
             Tier = tier,
-            TestResults = result,
+            TestResults = JsonSerializer.Serialize(result),
             HintUsed = code.HintUsed,
             TimeSpentSec = code.TimeSpentSec
         };
         await unitOfWork.GetRepository<PracticeAttempt>()
             .AddAsync(practiceAttemptes);
-        
+
         // 5.gate_attempts++ 
-        var pLayerProgerss = await unitOfWork.GetRepository<PlayerShiftProgress>()
-            .FindAsync(p => p.PlayerId == PlayerId);
-        pLayerProgerss.GateAttempts++;
-        unitOfWork.GetRepository<PlayerShiftProgress>().UpdateAsync(pLayerProgerss);
-        await unitOfWork.SaveAsync();
-        
+        var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId);
+
+        if (playerProgress is null)
+        {
+            return Result.Failure<CodeSubmitResponseDto>(
+                new Error(
+                    "NotFound.Progress",
+                    "Player shift progress was not found."));
+        }
+        playerProgress.GateAttempts++;
+        await unitOfWork?.GetRepository<PlayerShiftProgress>()?.UpdateAsync(playerProgress)!;
+        await unitOfWork?.SaveAsync()!;
+
         // 6. Check Gate Status
-        
+        var attempts = player.PracticeAttempts
+            .Take(3)
+            .Where(p => (p.TaskId == code.TaskId && (p.Tier == ChoiceTier.Ideal || p.Tier == ChoiceTier.Acceptable)))
+            .OrderByDescending(p => p.SubmittedAt);
+
+        if (attempts.Count() != 3)
+            playerProgress.Status = ShiftProgressStatus.Completed;
+        else if (attempts.Count() < 3 && attempts.Count() > 0)
+            playerProgress.Status = ShiftProgressStatus.GatePending;
+
+
+        return Result.Success<CodeSubmitResponseDto>(
+        new CodeSubmitResponseDto
+        {
+            Tier = tier,
+            TestResults = JsonSerializer.Serialize(result),
+            GateCleared = playerProgress.Status == ShiftProgressStatus.Completed,
+            StruggleDetected = player.PracticeAttempts.Where(p => p.TaskId == code.TaskId).Count() > 4,
+         });
+    }
+    private ChoiceTier CalculateTier(List<TestCaseResult> results)
+    {
+        if (results.Count == 0)
+            return ChoiceTier.Mistake;
+
+        var passed = results.Count(x => x.Passed);
+
+        if (passed == results.Count)
+        {
+            // TODO:
+            // Code quality analysis For Acceptable
+            return ChoiceTier.Ideal;
+        }
+
+        if (passed > 0)
+            return ChoiceTier.Debt;
+
+        return ChoiceTier.Mistake;
     }
 
     public Result<PracticeDto> AddPracticeTask(PracticeDto practice)
