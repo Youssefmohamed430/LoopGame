@@ -8,5 +8,5 @@ public interface IPracticeService
     Result<TestCaseDto> UpdateTestCasesAtPracticeTask(int TestId, TestCaseDto testCaseDto);
     Result<List<TestCaseDto>> AddTestCasesAtPracticeTask(List<TestCaseDto> testCaseDtos);
     //Result<PracticeDto> DeletePracticeTask(int TaskId);
-    CodeSubmitResponseDto SubmitCode(int PlayerId, CodeSubmitRequestDto code);
+    Task<Result<CodeSubmitResponseDto>> SubmitCode(int PlayerId, CodeSubmitRequestDto code);
 }

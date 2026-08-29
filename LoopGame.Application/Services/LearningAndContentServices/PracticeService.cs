@@ -37,9 +37,56 @@ public class PracticeService
         return Result.Success(task);
     }
 
-    public CodeSubmitResponseDto SubmitCode(int PlayerId, CodeSubmitRequestDto code)
+    public async Task<Result<CodeSubmitResponseDto>> SubmitCode(int PlayerId, CodeSubmitRequestDto code)
     {
-        throw new NotImplementedException();
+        // 1. Get PracticeTask & Get TestCases
+        var task = unitOfWork.GetRepository<PracticeTask>()
+            .Find(t => t.TaskId == code.TaskId,new string[] { "TestCases", "Shift" });
+        
+        // 2. Execute Code
+        var result = await codeExecutionService.ExecuteAsync(code.SubmittedCode, task.TestCases.ToList());
+        
+        // 3. Claculate Tier
+        var passesCounter = 0;
+        var tier = ChoiceTier.Ideal;
+        foreach (var testcase in result)
+        {
+            if (testcase.Passed) passesCounter++;
+        }
+
+        double rate = passesCounter / result.Count;
+        if (rate == 1)
+        {
+            // Based On Quality Of Code the tier will be Ideal or Acceptable 
+        }
+        else if (rate > .5)
+            tier = ChoiceTier.Debt;
+        else
+            tier = ChoiceTier.Mistake;
+        
+        // 4. INSERT PracticeAttempt
+        var practiceAttemptes = new PracticeAttempt()
+        {
+            PlayerId = PlayerId,
+            TaskId = code.TaskId, 
+            SubmittedCode = code.SubmittedCode,
+            Tier = tier,
+            TestResults = result,
+            HintUsed = code.HintUsed,
+            TimeSpentSec = code.TimeSpentSec
+        };
+        await unitOfWork.GetRepository<PracticeAttempt>()
+            .AddAsync(practiceAttemptes);
+        
+        // 5.gate_attempts++ 
+        var pLayerProgerss = await unitOfWork.GetRepository<PlayerShiftProgress>()
+            .FindAsync(p => p.PlayerId == PlayerId);
+        pLayerProgerss.GateAttempts++;
+        unitOfWork.GetRepository<PlayerShiftProgress>().UpdateAsync(pLayerProgerss);
+        await unitOfWork.SaveAsync();
+        
+        // 6. Check Gate Status
+        
     }
 
     public Result<PracticeDto> AddPracticeTask(PracticeDto practice)
