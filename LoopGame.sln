@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoopGame.Infrastructure", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoopGame.Tests", "LoopGame.Tests\LoopGame.Tests.csproj", "{1AC53DCB-6FCF-40C5-84EB-0132C9562515}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodeRunner", "CodeRunner\CodeRunner.csproj", "{EDC7E166-EB8E-4F27-86C4-D3D746F34210}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{1AC53DCB-6FCF-40C5-84EB-0132C9562515}.Release|x64.Build.0 = Release|Any CPU
 		{1AC53DCB-6FCF-40C5-84EB-0132C9562515}.Release|x86.ActiveCfg = Release|Any CPU
 		{1AC53DCB-6FCF-40C5-84EB-0132C9562515}.Release|x86.Build.0 = Release|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Debug|x64.Build.0 = Debug|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Debug|x86.Build.0 = Debug|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Release|x64.ActiveCfg = Release|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Release|x64.Build.0 = Release|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Release|x86.ActiveCfg = Release|Any CPU
+		{EDC7E166-EB8E-4F27-86C4-D3D746F34210}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
