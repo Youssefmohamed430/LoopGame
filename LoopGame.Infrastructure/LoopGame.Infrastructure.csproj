@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\LoopGame.Application\LoopGame.Application.csproj" />
     <ProjectReference Include="..\LoopGame.Domain\LoopGame.Domain.csproj" />
   </ItemGroup>
 

@@ -1,5 +1,6 @@
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
+using System.Reflection;
 
 namespace LoopGame.Application;
 
@@ -16,6 +17,8 @@ public static class DependencyInjection
         services.AddScoped<ISahmService, SahmService>();
 
         services.AddSingleton<IAssessmentEventEmitter, NoopAssessmentEventEmitter>();
+
+        services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
         return services;
     }

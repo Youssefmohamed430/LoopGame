@@ -7,9 +7,10 @@ namespace LoopGame.Infrastructure.Persistence;
 /// Entity configurations are loaded automatically via ApplyConfigurationsFromAssembly.
 /// </summary>
 public class AppDbContext
-    : IdentityDbContext<ApplicationUser, ApplicationRole, int,
-        IdentityUserClaim<int>, IdentityUserRole<int>, IdentityUserLogin<int>,
-        IdentityRoleClaim<int>, IdentityUserToken<int>>
+    : IdentityDbContext<
+        ApplicationUser, IdentityRole<int>, int,IdentityUserClaim<int>,
+        IdentityUserRole<int>,IdentityUserLogin<int>,IdentityRoleClaim<int>,
+        IdentityUserToken<int>>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options) { }
@@ -61,7 +62,6 @@ public class AppDbContext
 
         // Rename ASP.NET Identity tables to match the ERD schema
         modelBuilder.Entity<ApplicationUser>()     .ToTable("ApplicationUser");
-        modelBuilder.Entity<ApplicationRole>()     .ToTable("ApplicationRole");
         modelBuilder.Entity<IdentityUserRole<int>>().ToTable("ApplicationUserRole");
         modelBuilder.Entity<IdentityUserClaim<int>>().ToTable("ApplicationUserClaim");
         modelBuilder.Entity<IdentityUserLogin<int>>().ToTable("ApplicationUserLogin");
