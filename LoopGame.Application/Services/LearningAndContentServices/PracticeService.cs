@@ -9,7 +9,7 @@ public class PracticeService
     (IUnitOfWork unitOfWork, ICodeExecutionService codeExecutionService)
     : IPracticeService
 {
-    public Result<PracticeDto> GetTaskAsync(int TaskId, int PlayerId)
+    public async Task<Result<PracticeDto>> GetTaskAsync(int TaskId, int PlayerId)
     {
         var task = unitOfWork.GetRepository<PracticeTask>()
             .Find<PracticeDto>(pt => pt.TaskId == TaskId, new string[] { "TestCases", "Shift" });
@@ -18,24 +18,9 @@ public class PracticeService
         {
             return Result.Failure<PracticeDto>(new Error("NotFound.Task", $"Task with ID '{TaskId}' was not found."));
         }
-
-        var player = unitOfWork.GetRepository<Player>()
-            .Find(p => p.PlayerId == PlayerId, new string[] { "CurrentShift.PracticeTasks" });
-
-        if (player is null)
-        {
-            return Result.Failure<PracticeDto>(new Error("NotFound.Player", $"Player with ID '{PlayerId}' was not found."));
-        }
-
-        if (player.CurrentShift is null)
-        {
-            return Result.Failure<PracticeDto>(new Error("Forbidden.Access", "Player has no active shift."));
-        }
-
-        if (!player.CurrentShift.PracticeTasks.Any(t => t.TaskId == TaskId))
-        {
-            return Result.Failure<PracticeDto>(new Error("Forbidden.Access", "You are not allowed to access this task."));
-        }
+        
+        var (player, failure) = await CheckAccess(PlayerId, TaskId);
+        if(failure != null) return (Result<PracticeDto>)failure;
 
         task.TestCases = task.TestCases?.Where(t => !t.IsHidden).ToList();
 
@@ -45,45 +30,14 @@ public class PracticeService
     public async Task<Result<CodeSubmitResponseDto>> SubmitCode(int PlayerId, CodeSubmitRequestDto code)
     {
         // - Check Player Access
-
-        var player = await unitOfWork.GetRepository<Player>()
-            .FindAsync(p => p.PlayerId == PlayerId, new string[] { "PracticeAttempts", "ShiftProgresses" });
-
-        if (!player.CurrentShift.PracticeTasks.Any(t => t.TaskId == code.TaskId))
-        {
-            return Result.Failure<CodeSubmitResponseDto>(new Error("Forbidden.Access", "You are not allowed to access this task."));
-        }
+        var (player, failure) = await CheckAccess(PlayerId, code.TaskId);
+        if(failure != null) return (Result<CodeSubmitResponseDto>)failure;
 
         // 1. Get PracticeTask & Get TestCases
-        var task = unitOfWork.GetRepository<PracticeTask>()
-            .Find(t => t.TaskId == code.TaskId,new string[] { "TestCases", "Shift" });
-
-
-        if (task is null)
-        {
-            return Result.Failure<CodeSubmitResponseDto>(
-                new Error(
-                    "NotFound.Task",
-                    $"Task with ID '{code.TaskId}' was not found."));
-        }
-
-
+        if (GetTasksWithHiddenTests(code, out var task, out var result1)) return result1;
+        
         // - Check For MaxAttempts Validation
-
-        var attemptsCount = unitOfWork
-            .GetRepository<PracticeAttempt>()
-            .FindAll(a =>
-        a.PlayerId == PlayerId &&
-        a.TaskId == code.TaskId).Count();
-
-        if (task.MaxAttempts > 0 &&
-            attemptsCount >= task.MaxAttempts)
-        {
-            return Result.Failure<CodeSubmitResponseDto>(
-                new Error(
-                    "Practice.MaxAttemptsReached",
-                    "Maximum attempts reached for this task."));
-        }
+        if (ValidateMaxAttempts(PlayerId, code.TaskId, task.MaxAttempts, out var submitCode1)) return submitCode1;
 
         // 2. Execute Code
         var result = await codeExecutionService.ExecuteAsync(code.SubmittedCode, task.TestCases.ToList());
@@ -92,6 +46,78 @@ public class PracticeService
         var tier = CalculateTier(result.ToList());
 
         // 4. INSERT PracticeAttempt
+        await InsertPracticeAttempts(PlayerId, code, tier, result);
+
+        // 5.gate_attempts++ 
+        var (playerProgress, failure1) = await UpdatePlayerProgress(player);
+        if(failure1 != null) return (Result<CodeSubmitResponseDto>)failure1;
+        
+
+        // 6. Check Gate Status
+        UpdateGateStatus(code, player, playerProgress);
+
+        await unitOfWork?.SaveAsync()!;
+
+        return Result.Success<CodeSubmitResponseDto>(
+        new CodeSubmitResponseDto
+        {
+            Tier = tier,
+            TestResults = JsonSerializer.Serialize(result),
+            GateCleared = playerProgress.Status == ShiftProgressStatus.Completed,
+            StruggleDetected = player.PracticeAttempts.Where(p => p.TaskId == code.TaskId).Count() > 4,
+         });
+    }
+
+    private bool GetTasksWithHiddenTests(CodeSubmitRequestDto code, out PracticeTask? task, out Result<CodeSubmitResponseDto> result1)
+    {
+        task = unitOfWork.GetRepository<PracticeTask>()
+            .Find(t => t.TaskId == code.TaskId,new string[] { "TestCases", "Shift" });
+
+
+        if (task is null)
+        {
+            result1 = Result.Failure<CodeSubmitResponseDto>(
+                new Error(
+                    "NotFound.Task",
+                    $"Task with ID '{code.TaskId}' was not found."));
+            return true;
+        }
+
+        result1 = null;
+        return false;
+    }
+
+    private static void UpdateGateStatus(CodeSubmitRequestDto code, Player player, PlayerShiftProgress? playerProgress)
+    {
+        var attempts = player.PracticeAttempts
+            .Take(3)
+            .Where(p => (p.TaskId == code.TaskId && (p.Tier == ChoiceTier.Ideal || p.Tier == ChoiceTier.Acceptable)))
+            .OrderByDescending(p => p.SubmittedAt);
+
+        if (attempts.Count() != 3)
+            playerProgress.Status = ShiftProgressStatus.Completed;
+        else if (attempts.Count() < 3 && attempts.Count() > 0)
+            playerProgress.Status = ShiftProgressStatus.GatePending;
+    }
+
+    private async Task<(PlayerShiftProgress? playerProgress, Result<CodeSubmitResponseDto> failure1)> UpdatePlayerProgress(Player player)
+    {
+        var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId);
+
+        if (playerProgress is null)
+        {
+            return (playerProgress, Result.Failure<CodeSubmitResponseDto>(
+                new Error(
+                    "NotFound.Progress",
+                    "Player shift progress was not found.")));
+        }
+        playerProgress.GateAttempts++;
+        await unitOfWork?.GetRepository<PlayerShiftProgress>()?.UpdateAsync(playerProgress)!;
+        return (playerProgress, null!);
+    }
+
+    private async Task InsertPracticeAttempts(int PlayerId, CodeSubmitRequestDto code, ChoiceTier tier, List<TestCaseResult> result)
+    {
         var practiceAttemptes = new PracticeAttempt()
         {
             PlayerId = PlayerId,
@@ -104,42 +130,47 @@ public class PracticeService
         };
         await unitOfWork.GetRepository<PracticeAttempt>()
             .AddAsync(practiceAttemptes);
-
-        // 5.gate_attempts++ 
-        var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId);
-
-        if (playerProgress is null)
-        {
-            return Result.Failure<CodeSubmitResponseDto>(
-                new Error(
-                    "NotFound.Progress",
-                    "Player shift progress was not found."));
-        }
-        playerProgress.GateAttempts++;
-        await unitOfWork?.GetRepository<PlayerShiftProgress>()?.UpdateAsync(playerProgress)!;
-        await unitOfWork?.SaveAsync()!;
-
-        // 6. Check Gate Status
-        var attempts = player.PracticeAttempts
-            .Take(3)
-            .Where(p => (p.TaskId == code.TaskId && (p.Tier == ChoiceTier.Ideal || p.Tier == ChoiceTier.Acceptable)))
-            .OrderByDescending(p => p.SubmittedAt);
-
-        if (attempts.Count() != 3)
-            playerProgress.Status = ShiftProgressStatus.Completed;
-        else if (attempts.Count() < 3 && attempts.Count() > 0)
-            playerProgress.Status = ShiftProgressStatus.GatePending;
-
-
-        return Result.Success<CodeSubmitResponseDto>(
-        new CodeSubmitResponseDto
-        {
-            Tier = tier,
-            TestResults = JsonSerializer.Serialize(result),
-            GateCleared = playerProgress.Status == ShiftProgressStatus.Completed,
-            StruggleDetected = player.PracticeAttempts.Where(p => p.TaskId == code.TaskId).Count() > 4,
-         });
     }
+
+    private bool ValidateMaxAttempts(int PlayerId, int TaskId , int MaxAttempts, out Result<CodeSubmitResponseDto> submitCode1)
+    {
+        var attemptsCount = unitOfWork
+            .GetRepository<PracticeAttempt>()
+            .FindAll(a =>
+                a.PlayerId == PlayerId &&
+                a.TaskId == TaskId).Count();
+
+        if (MaxAttempts > 0 &&
+            attemptsCount >= MaxAttempts)
+        {
+            submitCode1 = Result.Failure<CodeSubmitResponseDto>(
+                new Error(
+                    "Practice.MaxAttemptsReached",
+                    "Maximum attempts reached for this task."));
+            return true;
+        }
+
+        submitCode1 = null;
+        return false;
+    }
+
+    private async Task<(Player player, Result failure)> CheckAccess(int PlayerId, int TaskId)
+    {
+        var player = await unitOfWork.GetRepository<Player>()
+            .FindAsync(p => p.PlayerId == PlayerId, new string[] { "PracticeAttempts", "ShiftProgresses" , "CurrentShift.PracticeTasks"});
+
+        if (player is null)
+            return (null!, Result.Failure(new Error("Forbidden.AccessGame", "You are not allowed to access this game.")));
+        
+        if (player.CurrentShift is null)
+            return (null!,Result.Failure(new Error("Forbidden.Access", "Player has no active shift.")));
+        
+        if (!player.CurrentShift.PracticeTasks.Any(t => t.TaskId == TaskId))
+            return (null!, Result.Failure(new Error("Forbidden.Access", "You are not allowed to access this task.")));
+
+        return (player, null!);
+    }
+
     private ChoiceTier CalculateTier(List<TestCaseResult> results)
     {
         if (results.Count == 0)
