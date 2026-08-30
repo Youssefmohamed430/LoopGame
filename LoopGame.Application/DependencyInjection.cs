@@ -1,5 +1,6 @@
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
+using System.Reflection;
 using LoopGame.Application.Services.LearningAndContentServices;
 using Microsoft.Extensions.Configuration;
 
@@ -29,6 +30,8 @@ public static class DependencyInjection
         });
 
         services.AddSingleton<IAssessmentEventEmitter, NoopAssessmentEventEmitter>();
+
+        services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
         return services;
     }

@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace LoopGame.Infrastructure.Persistence.Configurations;
 
 public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
@@ -40,5 +42,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(t => new { t.UserId, t.ExpiresAt })
                .HasFilter("\"RevokedAt\" IS NULL")
                .HasDatabaseName("IX_RefreshToken_User_Expiry");
+        //builder.HasIndex(x => x.TokenHash) if needed
+        //       .IsUnique();
     }
 }
