@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoopGame.Application.IServices.SystemAndUtilityServices
+namespace LoopGame.Application.Utilities
 {
     public interface IEmailService
     {

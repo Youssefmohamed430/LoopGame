@@ -26,6 +26,8 @@ public class AppDbContext
     public DbSet<PracticeTask>     PracticeTasks  => Set<PracticeTask>();
     public DbSet<TestCase>         TestCases      => Set<TestCase>();
     public DbSet<SideTaskTemplate> SideTaskTemplates => Set<SideTaskTemplate>();
+    public DbSet<SheetFile>        SheetFiles     => Set<SheetFile>();
+    
 
     // ── Runtime Player State ─────────────────────────────────────
     public DbSet<Player>                Players              => Set<Player>();
@@ -52,6 +54,7 @@ public class AppDbContext
     // ── AI Pipeline & Audit ──────────────────────────────────────
     public DbSet<AiGenerationLog> AiGenerationLogs => Set<AiGenerationLog>();
     public DbSet<AuditLog>        AuditLogs         => Set<AuditLog>();
+    public DbSet<OtpRecord> OtpRecords => Set<OtpRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
