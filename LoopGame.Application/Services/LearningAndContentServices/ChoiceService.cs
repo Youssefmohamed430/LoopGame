@@ -14,19 +14,19 @@ public class ChoiceService
     (IUnitOfWork unitOfWork)
     : IChoiceService
 {
-    public async Task<Result<List<ChoiceDto>>> GetChoices(int BeatId, int PlayerId)
+    public async Task<Result<List<ChoiceDto>>> GetChoices(int beatId, int playerId)
     {
-        if (BeatId <= 0 || PlayerId <= 0)
+        if (beatId <= 0 || playerId <= 0)
             return Result.Failure<List<ChoiceDto>>(ChoiceErrors.InvalidId);
 
         var player = await unitOfWork.GetRepository<Player>()
-            .FindAsync(p => p.PlayerId == PlayerId);
+            .FindAsync(p => p.PlayerId == playerId);
 
         if (player == null)
             return Result.Failure<List<ChoiceDto>>(ChoiceErrors.PlayerNotFound);
 
         var beat = await unitOfWork.GetRepository<StoryBeat>()
-            .FindAsync(b => b.BeatId == BeatId, new string[] { "Choices" });
+            .FindAsync(b => b.BeatId == beatId, new string[] { "Choices" });
 
         if (beat == null)
             return Result.Failure<List<ChoiceDto>>(ChoiceErrors.BeatNotFound);
@@ -118,11 +118,14 @@ public class ChoiceService
 
     public async Task<Result<ChoiceDto>> SubmitChoice(int choiceid, int PlayerId)
     {
-        var PlayerProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
-            .FindAsync(p => p.PlayerId == PlayerId);
+        var player = await unitOfWork.GetRepository<Player>()
+            .FindAsync(p => p.PlayerId == PlayerId,new string [] {"ShiftProgresses"});
 
         var choice = await unitOfWork.GetRepository<Choice>()
-            .FindAsync(c => c.ChoiceId == choiceid);
+            .FindAsync(c => c.ChoiceId == choiceid,new string[] {"Beat"});
+
+        if (choice.Beat.ShiftId != player.CurrentShiftId)
+            return Result.Failure<ChoiceDto>(new Error("Forbidden.Access","You are not allowed to access this choice."));
 
         var PlayerChoice = new PlayerChoice()
         {
@@ -144,9 +147,8 @@ public class ChoiceService
             await unitOfWork.GetRepository<ConsequenceQueue>()
                 .AddAsync(ConsequenceQueue);
         }
-
-        PlayerProgress.GateAttempts++;
-        //PlayerProgress.Status;
+        var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId)!;
+        playerProgress.GateAttempts++;
         await unitOfWork.SaveAsync();
 
         return Result.Success(choice.Adapt<ChoiceDto>());

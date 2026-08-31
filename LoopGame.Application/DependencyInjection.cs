@@ -2,10 +2,12 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.Options;
+using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
 using LoopGame.Application.Services.LearningAndContentServices;
 using LoopGame.Application.Services.SystemAndUtilityServices;
 using LoopGame.Infrastructure.Identity;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
@@ -28,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<ISahmService, SahmService>();
         services.AddScoped<IPracticeService, PracticeService>();
         services.AddScoped<BackgroundJob, Services.SystemAndUtilityServices.ScenarioGeneratorService>();
+        services.AddScoped<INarrativeService, NarrativeService>();
+        services.AddScoped<IChoiceService, ChoiceService>();
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();

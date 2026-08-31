@@ -22,3 +22,5 @@ global using LoopGame.Domain.Entities.Player;
 global using LoopGame.Domain.Entities.SideTask;
 global using LoopGame.Application.IServices.LearningAndContentServices;
 global using LoopGame.Application.IServices.SystemAndUtilityServices;
+global using LoopGame.Application.Dtos.NarrativeDtos;
+
