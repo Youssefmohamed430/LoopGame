@@ -1,5 +1,6 @@
 using LoopGame.Domain.Entities.Narrative;
 using LoopGame.Application.Dtos;
+using LoopGame.Application.Dtos.NarrativeDtos;
 
 namespace LoopGame.Application.Mapping;
 
@@ -26,6 +27,9 @@ public class MapsterConfiguration : IRegister
 
         config.NewConfig<UpdateChoiceDto, Choice>()
             .IgnoreNullValues(true);
+
+        // Narrative Mappings
+        config.NewConfig<Shift, ShiftDto>();
+        config.NewConfig<StoryBeat, BeatDto>();
     }
 }
-

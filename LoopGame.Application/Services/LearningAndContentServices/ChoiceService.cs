@@ -10,7 +10,9 @@ using System.Threading.Tasks;
 
 namespace LoopGame.Application.Services.LearningAndContentServices;
 
-public class ChoiceService (IUnitOfWork unitOfWork) : IChoiceService
+public class ChoiceService
+    (IUnitOfWork unitOfWork)
+    : IChoiceService
 {
     public async Task<Result<List<ChoiceDto>>> GetChoices(int beatId, int playerId)
     {

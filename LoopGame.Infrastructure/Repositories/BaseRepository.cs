@@ -110,6 +110,17 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
 
         return entity.FirstOrDefault(criteria)!;
     }
+    
+    public T FindAllWithTracking(Expression<Func<T, bool>> criteria, string[]? includes = null)
+    {
+        var entity = _context.Set<T>().AsTracking();
+
+        if (includes != null)
+            foreach (var include in includes ?? Array.Empty<string>())
+                entity = entity.Include(include);
+
+        return entity.FirstOrDefault(criteria)!;
+    }
 
     public IQueryable<TDto> GetAll<TDto>()
           => _context.Set<T>().AsNoTracking().ProjectToType<TDto>();
