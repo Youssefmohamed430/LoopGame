@@ -31,6 +31,27 @@ public static class ResultHttpMapping
         "Economy.PlayerEconomyNotFound" or
         "Shop.ItemNotFoundOrUnavailable"                            => 404,
 
-        _ => 400 // InvalidAmount, InvalidPagination, RankNotMet, InvalidTierUpgrade, unknown
+        // ── Narrative not-found errors → 404 ─────────────────────────────
+        "Narrative.ShiftNotFound" or
+        "Narrative.BeatNotFound"                                    => 404,
+
+        // ── Narrative conflict / dependency errors → 409 ──────────────────
+        "Narrative.DuplicateShiftNumber" or
+        "Narrative.DuplicateBeatKey"     or
+        "Narrative.SequenceOrderConflict" or
+        "Narrative.ShiftHasPlayerProgress" or
+        "Narrative.ShiftHasStoryBeats"   or
+        "Narrative.BeatHasActiveConsequenceQueues" or
+        "Narrative.BeatHasConsequenceReference"   or
+        "Narrative.BeatHasChoices"       or
+        "Narrative.BeatAlreadyInShift"   or
+        "Narrative.ConsequenceBeatCannotChangeShift" => 409,
+
+        // ── Choice / player errors → 404 / 400 already covered by ChoiceErrors ─
+        "Choice.PlayerNotFound" or
+        "Choice.BeatNotFound"   or
+        "Choice.ChoiceNotFound"                                     => 404,
+
+        _ => 400 // validation errors, unknown
     };
 }

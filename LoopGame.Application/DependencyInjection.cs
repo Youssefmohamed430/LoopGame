@@ -1,7 +1,8 @@
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
+using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
-using System.Reflection;
 using LoopGame.Application.Services.LearningAndContentServices;
+using System.Reflection;
 using Microsoft.Extensions.Configuration;
 
 namespace LoopGame.Application;
@@ -22,6 +23,8 @@ public static class DependencyInjection
         services.AddScoped<IShopService, ShopService>();
         services.AddScoped<ISahmService, SahmService>();
         services.AddScoped<IPracticeService, PracticeService>();
+        services.AddScoped<INarrativeService, NarrativeService>();
+        services.AddScoped<IChoiceService, ChoiceService>();
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
         {
             var configuration = sp.GetRequiredService<IConfiguration>();
