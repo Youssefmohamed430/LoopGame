@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LoopGame.Application.IServices.SystemAndUtilityServices
 {
-    public interface IBackgroundJob
+    public interface IScenarioGeneratorService
     {
         Task<Result> ProcessAsync(int sheetFileId);
     }

@@ -1,7 +1,10 @@
 
 using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Hangfire;
+using LoopGame.Application.Dtos.AdminDtos;
 using LoopGame.Application.IServices.SystemAndUtilityServices;
+using LoopGame.Domain.Enums.AuthModule;
+using MapsterMapper;
 using Microsoft.AspNetCore.Http;
 
 namespace LoopGame.Application.Services.SystemAndUtilityServices;
@@ -10,10 +13,12 @@ public class AdminService : IAdminService
 {
     private readonly IFileStorageService _fileStorageService;
     private readonly IUnitOfWork _unitOfWork;
-    public AdminService(IFileStorageService fileStorageService,IUnitOfWork unitOfWork )
+    private readonly IMapper _mapper;
+    public AdminService(IFileStorageService fileStorageService,IUnitOfWork unitOfWork, IMapper mapper)
     {
         _fileStorageService = fileStorageService;
         _unitOfWork = unitOfWork;
+        _mapper = mapper;
     }
     
     public async Task<Result> UploadAsync(int shiftId, int uploadedBy, IFormFile file)
@@ -41,7 +46,8 @@ public class AdminService : IAdminService
             S3Key = s3Key.Value,
             FileName = file.FileName,
             UploadedAt = DateTime.UtcNow,
-            UploadedByUserId = uploadedBy
+            UploadedByUserId = uploadedBy,
+            Status = SheetFileStatus.Pending
         };
         try
         {
@@ -53,20 +59,20 @@ public class AdminService : IAdminService
             await _fileStorageService.DeleteAsync(s3Key.Value);
             return Result.Failure(FileErrors.FileUploadFailed);
         }
-        BackgroundJob.Enqueue<IServices.SystemAndUtilityServices.IBackgroundJob>(processor => processor.ProcessAsync(sideTaskFile.Id));
+        BackgroundJob.Enqueue<IScenarioGeneratorService>(processor => processor.ProcessAsync(sideTaskFile.Id));
 
         return Result.Success();
     }
-    public async Task<Result<List<SheetFile>>> ListUploadedFilesAsync(int shiftId)
+    public async Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(int shiftId)
     {
         var shiftExists = await _unitOfWork.GetRepository<Shift>().FindAll(s => s.ShiftId == shiftId).AnyAsync();
         
         if (!shiftExists)
-            return Result.Failure<List<SheetFile>>(AdminErrors.ShiftNotFound);
+            return Result.Failure<List<SheetFileDto>>(AdminErrors.ShiftNotFound);
 
         var files = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.ShiftId == shiftId).OrderByDescending(f => f.UploadedAt).ToListAsync();
-
-        return Result.Success(files);
+        var filesDto = _mapper.Map<List<SheetFileDto>>(files);
+        return Result.Success(filesDto);
     }
     public async Task<Result> DeleteUploadedFileAsync(int fileId)
     {

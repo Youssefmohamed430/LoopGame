@@ -8,6 +8,6 @@ namespace LoopGame.Application.Utilities
 {
     public interface IFileContentReaderService
     {
-        Result<string> ReadAsync( Stream fileStream,string fileName);
+        Result<string> ReadFile( Stream fileStream,string fileName);
     }
 }

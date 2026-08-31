@@ -5,15 +5,15 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoopGame.Domain.Entities.SideTask
+namespace LoopGame.Application.Dtos.AdminDtos
 {
-    public class SheetFile
+    public class SheetFileDto
     {
         public int Id { get; set; }
         public int ShiftId { get; set; }
         public string FileName { get; set; }
         public string S3Key { get; set; }
-        public SheetFileStatus Status { get; set; }
+        public string Status { get; set; }
         public DateTime UploadedAt { get; set; }
         public int UploadedByUserId { get; set; }
     }

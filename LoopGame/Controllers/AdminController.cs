@@ -24,10 +24,10 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
         if (file is null || file.Length == 0)
             return BadRequest(new {message = "File is required."});
 
-        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase){".docx", ".doc", ".pdf" };
+        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase){".docx", ".pdf" };
         var extension = Path.GetExtension(file.FileName);
         if (!allowedExtensions.Contains(extension))
-            return BadRequest(new{message = "Only Word, and PDF files are allowed."});
+            return BadRequest(new{message = "Only Word and PDF files are allowed."});
 
         var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 

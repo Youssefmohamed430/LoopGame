@@ -4,6 +4,7 @@ using LoopGame.Domain.Enums;
 using LoopGame.Application.Dtos.AuthServiceDtos;
 using LoopGame.Domain.Entities.Narrative;
 using LoopGame.Infrastructure.Identity;
+using LoopGame.Application.Dtos.AdminDtos;
 
 namespace LoopGame.Application.Mapping;
 
@@ -31,16 +32,17 @@ public class MapsterConfiguration : IRegister
         config.NewConfig<UpdateChoiceDto, Choice>()
             .IgnoreNullValues(true);
 
-        TypeAdapterConfig<RegisterDto, ApplicationUser>.NewConfig()
+        config.NewConfig<RegisterDto, ApplicationUser>()
             .Map(dest => dest.Email, src => src.Email)
             .Map(dest => dest.DisplayName, src => src.FullName);
 
-        TypeAdapterConfig<ApplicationUser, UserToReturnDto>.NewConfig()
+        config.NewConfig<ApplicationUser, UserToReturnDto>()
             .Map(dest => dest.FullName, src => src.DisplayName)
             .Map(dest => dest.UserId, src => src.Id);
 
-        TypeAdapterConfig<RegisterDto, Player>.NewConfig();
-
+        config.NewConfig<RegisterDto, Player>();
+        config.NewConfig<SheetFile, SheetFileDto>()
+            .Map(dest => dest.Status, src => src.Status.ToString());
 
         // ── Narrative Mappings ────────────────────────────────────────────────
 

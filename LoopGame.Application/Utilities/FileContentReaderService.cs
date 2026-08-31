@@ -13,7 +13,7 @@ namespace LoopGame.Application.Utilities
 {
     public class FileContentReaderService : IFileContentReaderService
     {
-        public Result<string> ReadAsync(Stream fileStream, string fileName)
+        public Result<string> ReadFile(Stream fileStream, string fileName)
         {
             var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
             return extension switch
