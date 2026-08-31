@@ -52,6 +52,9 @@ public static class ResultHttpMapping
         "Choice.BeatNotFound"   or
         "Choice.ChoiceNotFound"                                     => 404,
 
+        "Choice.ShiftMismatch"                                      => 409,
+        "Forbidden.Access"                                          => 403,
+
         _ => 400 // validation errors, unknown
     };
 }
