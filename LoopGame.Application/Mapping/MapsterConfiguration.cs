@@ -1,4 +1,5 @@
 using LoopGame.Domain.Entities.Narrative;
+using LoopGame.Domain.Entities.Assessment;
 using LoopGame.Application.Dtos;
 using LoopGame.Application.Dtos.NarrativeDtos;
 using LoopGame.Domain.Enums;
@@ -66,5 +67,15 @@ public class MapsterConfiguration : IRegister
             .IgnoreNullValues(true)
             .Ignore(dest => dest.BeatKey)   // BeatKey is immutable after creation
             .Ignore(dest => dest.ShiftId);  // ShiftId handled explicitly in service
+
+        // ── Assessment Mappings ────────────────────────────────────────────────
+        config.NewConfig<AssessmentEventDto, AssessmentEvent>()
+            .Map(dest => dest.Payload, src => src.PayloadJson)
+            .Map(dest => dest.RecordedAt, src => src.RecordedAt.HasValue ? src.RecordedAt.Value : DateTime.UtcNow);
+
+        config.NewConfig<AssessmentEvent, AssessmentEventDto>()
+            .Map(dest => dest.PayloadJson, src => src.Payload);
+
+        config.NewConfig<ConceptMasterySnapshot, ConceptMasterySnapshotDto>();
     }
 }

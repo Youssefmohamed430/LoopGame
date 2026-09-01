@@ -1,3 +1,4 @@
+using LoopGame.Application.BackgroundJobs;
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
@@ -32,7 +33,10 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(baseUrl);
         });
 
-        services.AddSingleton<IAssessmentEventEmitter, NoopAssessmentEventEmitter>();
+        services.AddScoped<IAssessmentService, AssessmentService>();
+        services.AddScoped<IAssessmentEventEmitter, HangfireAssessmentEventEmitter>();
+        services.AddScoped<IAssessmentJobScheduler, AssessmentJobScheduler>();
+        services.AddScoped<AssessmentJobs>();
 
         services.AddAutoMapper(Assembly.GetExecutingAssembly());
 

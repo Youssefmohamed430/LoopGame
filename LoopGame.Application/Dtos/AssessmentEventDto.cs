@@ -10,4 +10,6 @@ public record AssessmentEventDto(
     string EventType,
     string? ConceptTag,
     string? Tier,
-    string? PayloadJson);
+    string? PayloadJson,
+    Guid? SessionId = null,
+    DateTime? RecordedAt = null);

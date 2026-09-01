@@ -53,6 +53,12 @@ public static class ResultHttpMapping
         "Choice.ChoiceNotFound"                                     => 404,
 
         "Choice.ShiftMismatch"                                      => 409,
+
+        // ── Assessment errors → 404 / 400 ─────────────────────────────
+        "Assessment.PlayerNotFound" or
+        "Assessment.ShiftNotFound"  or
+        "Assessment.NoEventsFound"                                  => 404,
+
         "Forbidden.Access"                                          => 403,
 
         _ => 400 // validation errors, unknown

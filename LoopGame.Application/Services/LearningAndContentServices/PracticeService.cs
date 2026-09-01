@@ -1,3 +1,5 @@
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
+using LoopGame.Domain.Constants;
 using LoopGame.Domain.Entities.Player;
 using System.Numerics;
 using System.Text.Json;
@@ -6,7 +8,8 @@ using System.Threading.Tasks;
 namespace LoopGame.Application.Services.LearningAndContentServices;
 
 public class PracticeService
-    (IUnitOfWork unitOfWork, ICodeExecutionService codeExecutionService)
+    (IUnitOfWork unitOfWork, ICodeExecutionService codeExecutionService,
+     IAssessmentEventEmitter assessmentEmitter, IAssessmentJobScheduler assessmentJobScheduler)
     : IPracticeService
 {
     public async Task<Result<PracticeDto>> GetTaskAsync(int TaskId, int PlayerId)
@@ -31,7 +34,7 @@ public class PracticeService
     {
         // - Check Player Access
         var (player, failure) = await CheckAccess(PlayerId, code.TaskId);
-        if(failure != null) return (Result<CodeSubmitResponseDto>)failure;
+        if(failure != null) return Result.Failure<CodeSubmitResponseDto>(failure.Error);
 
         // 1. Get PracticeTask & Get TestCases
         if (GetTasksWithHiddenTests(code, out var task, out var result1)) return result1;
@@ -46,24 +49,66 @@ public class PracticeService
         var tier = CalculateTier(result.ToList());
 
         // 4. INSERT PracticeAttempt
-        await InsertPracticeAttempts(PlayerId, code, tier, result);
+        var attemptId = await InsertPracticeAttempts(PlayerId, code, tier, result);
 
-        // 5.gate_attempts++ 
+        // 5. gate_attempts++ 
         var (playerProgress, failure1) = await UpdatePlayerProgress(player);
-        if(failure1 != null) return (Result<CodeSubmitResponseDto>)failure1;
+        if(failure1 != null) return Result.Failure<CodeSubmitResponseDto>(failure1.Error);
         
 
-        // 6. Check Gate Status
-        UpdateGateStatus(code, player, playerProgress);
+        // 6. Check Gate Status & Update Gate Clearance
+        UpdateGateStatus(code, player, playerProgress, tier);
 
         await unitOfWork?.SaveAsync()!;
+
+        // ── Assessment telemetry (fire-and-forget, after persistence) ──
+        assessmentEmitter.Emit(new AssessmentEventDto(
+            PlayerId,
+            EventType:   AssessmentWeights.EventTypes.PracticeAttempt,
+            ConceptTag:  task.ConceptTag,
+            Tier:        tier.ToString(),
+            PayloadJson: JsonSerializer.Serialize(new
+            {
+                taskId       = code.TaskId,
+                attemptId    = attemptId,
+                timeSpentSec = code.TimeSpentSec,
+                testResults  = result
+            })));
+
+        // If gate was cleared, emit gate_cleared + shift_completed events and schedule mastery computation
+        if (playerProgress.IsGateCleared)
+        {
+            assessmentEmitter.Emit(new AssessmentEventDto(
+                PlayerId,
+                EventType:   AssessmentWeights.EventTypes.GateCleared,
+                ConceptTag:  null,
+                Tier:        null,
+                PayloadJson: JsonSerializer.Serialize(new
+                {
+                    shiftId = task.ShiftId,
+                    taskId  = code.TaskId
+                })));
+
+            assessmentEmitter.Emit(new AssessmentEventDto(
+                PlayerId,
+                EventType:   AssessmentWeights.EventTypes.ShiftCompleted,
+                ConceptTag:  null,
+                Tier:        null,
+                PayloadJson: JsonSerializer.Serialize(new
+                {
+                    shiftId = task.ShiftId
+                })));
+
+            // Enqueue mastery computation via isolated assessment job scheduler service
+            assessmentJobScheduler.EnqueueMasteryComputation(PlayerId, task.ShiftId);
+        }
 
         return Result.Success<CodeSubmitResponseDto>(
         new CodeSubmitResponseDto
         {
             Tier = tier,
             TestResults = JsonSerializer.Serialize(result),
-            GateCleared = playerProgress.Status == ShiftProgressStatus.Completed,
+            GateCleared = playerProgress.IsGateCleared,
             StruggleDetected = player.PracticeAttempts.Where(p => p.TaskId == code.TaskId).Count() > 4,
          });
     }
@@ -87,17 +132,23 @@ public class PracticeService
         return false;
     }
 
-    private static void UpdateGateStatus(CodeSubmitRequestDto code, Player player, PlayerShiftProgress? playerProgress)
+    private static void UpdateGateStatus(CodeSubmitRequestDto code, Player player, PlayerShiftProgress? playerProgress, ChoiceTier currentTier)
     {
-        var attempts = player.PracticeAttempts
-            .Take(3)
-            .Where(p => (p.TaskId == code.TaskId && (p.Tier == ChoiceTier.Ideal || p.Tier == ChoiceTier.Acceptable)))
-            .OrderByDescending(p => p.SubmittedAt);
+        if (playerProgress is null) return;
 
-        if (attempts.Count() != 3)
+        bool isPassed = currentTier == ChoiceTier.Ideal || currentTier == ChoiceTier.Acceptable;
+
+        if (isPassed)
+        {
+            playerProgress.IsGateCleared = true;
+            playerProgress.GateClearedAt = DateTime.UtcNow;
             playerProgress.Status = ShiftProgressStatus.Completed;
-        else if (attempts.Count() < 3 && attempts.Count() > 0)
+            playerProgress.CompletedAt = DateTime.UtcNow;
+        }
+        else
+        {
             playerProgress.Status = ShiftProgressStatus.GatePending;
+        }
     }
 
     private async Task<(PlayerShiftProgress? playerProgress, Result<CodeSubmitResponseDto> failure1)> UpdatePlayerProgress(Player player)
@@ -116,7 +167,7 @@ public class PracticeService
         return (playerProgress, null!);
     }
 
-    private async Task InsertPracticeAttempts(int PlayerId, CodeSubmitRequestDto code, ChoiceTier tier, List<TestCaseResult> result)
+    private async Task<int> InsertPracticeAttempts(int PlayerId, CodeSubmitRequestDto code, ChoiceTier tier, List<TestCaseResult> result)
     {
         var practiceAttemptes = new PracticeAttempt()
         {
@@ -130,6 +181,8 @@ public class PracticeService
         };
         await unitOfWork.GetRepository<PracticeAttempt>()
             .AddAsync(practiceAttemptes);
+
+        return practiceAttemptes.AttemptId;
     }
 
     private bool ValidateMaxAttempts(int PlayerId, int TaskId , int MaxAttempts, out Result<CodeSubmitResponseDto> submitCode1)
@@ -251,6 +304,4 @@ public class PracticeService
         unitOfWork.SaveAsync().GetAwaiter().GetResult();
         return Result.Success(testCaseDtos);
     }
-
-    
 }
