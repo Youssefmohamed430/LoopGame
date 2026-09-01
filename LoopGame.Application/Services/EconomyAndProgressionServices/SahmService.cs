@@ -1,4 +1,5 @@
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
+using LoopGame.Domain.Constants;
 
 namespace LoopGame.Application.Services.EconomyAndProgressionServices;
 
@@ -51,10 +52,14 @@ public class SahmService(
         // Telemetry: fire-and-forget, after persistence, outside any money transaction.
         _eventEmitter.Emit(new AssessmentEventDto(
             playerId,
-            EventType: "hint_request",
+            EventType: AssessmentWeights.EventTypes.HintRequest,
             ConceptTag: request.ConceptTag,
             Tier: subscription.Tier.ToString(),
-            PayloadJson: null));
+            PayloadJson: System.Text.Json.JsonSerializer.Serialize(new
+            {
+                concept  = request.ConceptTag,
+                hintLevel = (int)MapHintLevel(subscription.Tier)
+            })));
 
         var resetsAtUtc = DateTime.UtcNow.Date.AddDays(1); // next midnight UTC
 

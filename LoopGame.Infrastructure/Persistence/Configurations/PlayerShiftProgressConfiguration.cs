@@ -34,6 +34,12 @@ public class PlayerShiftProgressConfiguration : IEntityTypeConfiguration<PlayerS
         builder.HasCheckConstraint("CHK_ShiftProgress_Status",
             "\"Status\" IN ('in_progress', 'gate_pending', 'completed')");
 
+        builder.Property(p => p.IsGateCleared)
+               .HasDefaultValue(false);
+
+        builder.Property(p => p.GateClearedAt)
+               .HasColumnType("timestamp with time zone");
+
         builder.Property(p => p.StartedAt)
                .HasColumnType("timestamp with time zone");
 

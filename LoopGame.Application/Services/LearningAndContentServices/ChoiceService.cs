@@ -1,17 +1,20 @@
 using LoopGame.Application.Dtos;
+using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Domain.Abstractions;
+using LoopGame.Domain.Constants;
 using LoopGame.Domain.Entities.Narrative;
 using LoopGame.Domain.Entities.Player;
 using Mapster;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace LoopGame.Application.Services.LearningAndContentServices;
 
 public class ChoiceService
-    (IUnitOfWork unitOfWork)
+    (IUnitOfWork unitOfWork, IAssessmentEventEmitter assessmentEmitter)
     : IChoiceService
 {
     public async Task<Result<List<ChoiceDto>>> GetChoices(int beatId, int playerId)
@@ -150,6 +153,18 @@ public class ChoiceService
         var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId)!;
         playerProgress.GateAttempts++;
         await unitOfWork.SaveAsync();
+
+        // ── Assessment telemetry (fire-and-forget, after persistence) ──
+        assessmentEmitter.Emit(new AssessmentEventDto(
+            PlayerId,
+            EventType:   AssessmentWeights.EventTypes.ChoiceSubmission,
+            ConceptTag:  choice.Beat.BeatKey,
+            Tier:        choice.Tier.ToString(),
+            PayloadJson: JsonSerializer.Serialize(new
+            {
+                beatId   = choice.BeatId,
+                choiceId = choice.ChoiceId
+            })));
 
         return Result.Success(choice.Adapt<ChoiceDto>());
     }
