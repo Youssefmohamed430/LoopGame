@@ -4,8 +4,10 @@ using Hangfire;
 using LoopGame.Application.Dtos.AdminDtos;
 using LoopGame.Application.IServices.SystemAndUtilityServices;
 using LoopGame.Domain.Enums.AuthModule;
+using LoopGame.Infrastructure.Identity;
 using MapsterMapper;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 
 namespace LoopGame.Application.Services.SystemAndUtilityServices;
 
@@ -14,13 +16,14 @@ public class AdminService : IAdminService
     private readonly IFileStorageService _fileStorageService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
-    public AdminService(IFileStorageService fileStorageService,IUnitOfWork unitOfWork, IMapper mapper)
+    private readonly UserManager<ApplicationUser> _userManager;
+    public AdminService(IFileStorageService fileStorageService,IUnitOfWork unitOfWork, IMapper mapper,UserManager<ApplicationUser> userManager)
     {
         _fileStorageService = fileStorageService;
         _unitOfWork = unitOfWork;
         _mapper = mapper;
-    }
-    
+        _userManager = userManager;
+    }   
     public async Task<Result> UploadAsync(int shiftId, int uploadedBy, IFormFile file)
     {
         var shiftExists = await _unitOfWork.GetRepository<Shift>().FindAll(s => s.ShiftId == shiftId).AnyAsync();
@@ -91,65 +94,50 @@ public class AdminService : IAdminService
         return Result.Success();
     }
 
-    //public async Task<Result<ShiftProgressReportDto>> GetShiftProgressReportAsync(int shiftId)
-    //{
-    //    var shift = await _unitOfWork.GetRepository<Shift>()
-    //        .FindAll(s => s.ShiftId == shiftId)
-    //        .Select(s => new { s.ShiftId, s.Title })
-    //        .FirstOrDefaultAsync();
+    public async Task<Result<List<PlayerShiftProgressDto>>> GetShiftStudentsProgressAsync(int shiftId)
+    {
+        var shift =  await _unitOfWork.GetRepository<Shift>()
+            .FindAllThenInclude(s => s.ShiftId == shiftId, query => query.Include(s => s.ShiftProgresses)
+            .ThenInclude(pp => pp.Player)).FirstOrDefaultAsync(); 
+        
+        if (shift is null)
+            return Result.Failure<List<PlayerShiftProgressDto>>(NarrativeErrors.ShiftNotFound);
 
-    //    if (shift is null)
-    //        return Result.Failure<ShiftProgressReportDto>(AdminErrors.ShiftNotFound);
+        var playerProgresses = shift.ShiftProgresses.Select(sp => new PlayerShiftProgressDto
+        {
+            PlayerId = sp.PlayerId,
+            PlayerName = sp.Player.PlayerName,
+            Status = sp.Status.ToString()
+        }).ToList();
 
+        return Result.Success(playerProgresses);
+    }
 
-    //    var rows = await _unitOfWork.GetRepository<PlayerShiftProgress>()
-    //        .FindAll(p => p.ShiftId == shiftId)
-    //        .Select(p => new PlayerShiftProgressDto(
-    //            p.PlayerId,
-    //            $"Player#{p.PlayerId}",           // placeholder until identity navigation is added
-    //            p.ShiftId,
-    //            shift.Title,
-    //            p.Status.ToString(),
-    //            p.GateAttempts,
-    //            p.StartedAt,
-    //            p.CompletedAt))
-    //        .ToListAsync();
-
-    //    int completedCount   = rows.Count(r => r.Status == ShiftProgressStatus.Completed.ToString());
-    //    int inProgressCount  = rows.Count(r => r.Status == ShiftProgressStatus.InProgress.ToString());
-
-    //    return new ShiftProgressReportDto(
-    //        shift.ShiftId,
-    //        shift.Title,
-    //        rows.Count,
-    //        completedCount,
-    //        inProgressCount,
-    //        rows);
-    //}
-
-    //public async Task<Result<List<PlayerShiftProgressDto>>> GetPlayerProgressAsync(int playerId)
-    //{
-    //    var playerExists = await _unitOfWork.GetRepository<Player>()
-    //        .FindAll(p => p.PlayerId == playerId)
-    //        .AnyAsync();
-
-    //    if (!playerExists)
-    //        return Result.Failure<List<PlayerShiftProgressDto>>(AdminErrors.PlayerNotFound);
-
-    //    var rows = await _unitOfWork.GetRepository<PlayerShiftProgress>()
-    //        .FindAll(p => p.PlayerId == playerId)
-    //        .OrderBy(p => p.Shift.ShiftNumber)
-    //        .Select(p => new PlayerShiftProgressDto(
-    //            p.PlayerId,
-    //            $"Player#{p.PlayerId}",           // placeholder — see GetShiftProgressReportAsync note
-    //            p.ShiftId,
-    //            p.Shift.Title,
-    //            p.Status.ToString(),
-    //            p.GateAttempts,
-    //            p.StartedAt,
-    //            p.CompletedAt))
-    //        .ToListAsync();
-
-    //    return Result.Success(rows);
-    //}
+    public async Task<Result<PlayerOverallProgressDto>> GetStudentOverallProgressAsync(int playerId)
+    {
+        var player = await _unitOfWork.GetRepository<Player>().FindAllThenInclude(p => p.PlayerId == playerId, query => query.Include(p => p.ShiftProgresses)
+            .ThenInclude(sp => sp.Shift)).FirstOrDefaultAsync();
+        if (player is null)
+            return Result.Failure<PlayerOverallProgressDto>(ChoiceErrors.PlayerNotFound);
+        var totalShifts = await _unitOfWork.GetRepository<Shift>().GetAll<Shift>().CountAsync();
+        var currentShift = player.ShiftProgresses.FirstOrDefault(sp => sp.Status == ShiftProgressStatus.InProgress);
+        var completedShifts = player.ShiftProgresses.Count(s => s.Status == ShiftProgressStatus.Completed);
+        var shifts = player.ShiftProgresses.Select(sp => new PlayerShiftProgressDetailsDto
+        {
+            ShiftId = sp.ShiftId,
+            ShiftName = sp.Shift.Title,
+            Status = sp.Status.ToString()
+        }).ToList();
+        var overallProgress = new PlayerOverallProgressDto
+        {
+            PlayerId = player.PlayerId,
+            PlayerName = player.PlayerName,
+            CurrentShiftId = currentShift?.ShiftId,
+            CurrentShiftName = currentShift?.Shift.Title ?? "there no shift in progress", 
+            CompletedShifts = completedShifts,
+            TotalShifts = totalShifts,
+            Shifts = shifts
+        };
+        return Result.Success(overallProgress);
+    }
 }

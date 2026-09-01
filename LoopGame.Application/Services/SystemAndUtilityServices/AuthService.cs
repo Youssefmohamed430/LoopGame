@@ -79,7 +79,11 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices
                 return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed());
             }
 
-            var profile = _mapper.Map<Player>(request);
+            var profile = new Player
+            {
+                PlayerId = user.Id,
+                PlayerName = request.FullName,
+            };
 
             await _unitOfWork.GetRepository<Player>().AddAsync(profile);
             await _unitOfWork.SaveAsync();

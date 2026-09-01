@@ -121,7 +121,15 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
 
         return entity.FirstOrDefault(criteria)!;
     }
+    public IQueryable<T> FindAllThenInclude(Expression<Func<T, bool>> criteria,Func<IQueryable<T>, IQueryable<T>>? includes = null)
+    {
+        var query = _context.Set<T>().AsNoTracking();
 
+        if (includes != null)
+            query = includes(query);
+
+        return query.Where(criteria);
+    }
     public IQueryable<TDto> GetAll<TDto>()
           => _context.Set<T>().AsNoTracking().ProjectToType<TDto>();
 

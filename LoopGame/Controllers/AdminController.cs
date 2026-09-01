@@ -60,6 +60,27 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
             return result.Error.ToActionResult();
         return Ok(new { message = "File deleted successfully." });
     }
+    [HttpGet("shifts/{shiftId}/students")]
+    public async Task<IActionResult> GetShiftStudentsProgress(int shiftId)
+    {
+        var result = await _adminService.GetShiftStudentsProgressAsync(shiftId);
+
+        if (result.IsFailure)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
+
+    [HttpGet("students/{playerId}")]
+    public async Task<IActionResult> GetStudentOverallProgress(int playerId)
+    {
+        var result = await _adminService.GetStudentOverallProgressAsync(playerId);
+
+        if (result.IsFailure)
+            return BadRequest(result);
+
+        return Ok(result);
+    }
 
 
 }
