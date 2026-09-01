@@ -48,7 +48,7 @@ public static class DependencyInjection
             services.Configure<SupabaseS3Settings>(configuration.GetSection("SupabaseS3Settings"));
         }
 
-        services.AddScoped<ISideTaskService, SideTaskService>();
+        // services.AddScoped<ISideTaskService, SideTaskService>();
         services.AddScoped<ISaveService, SaveService>();
         services.AddScoped<IAdminService, AdminService>();
 
