@@ -241,7 +241,16 @@ public class AssessmentServiceTests : IDisposable
         _db.PracticeTasks.Add(task);
         await _db.SaveChangesAsync();
 
-        var practiceService = new PracticeService(_uow.Object, executionMock.Object, emitterMock.Object, schedulerMock.Object);
+        var practiceService = new PracticeService(
+            _uow.Object,
+            new PracticeAccessService(_uow.Object),
+            new MaxAttemptsPolicy(_uow.Object),
+            executionMock.Object,
+            new PracticeTierCalculationPolicy(),
+            new PracticeAttemptService(_uow.Object),
+            new ProgressionService(_uow.Object),
+            emitterMock.Object,
+            schedulerMock.Object);
 
         var submitResult = await practiceService.SubmitCode(PlayerId, new CodeSubmitRequestDto
         {
@@ -314,7 +323,16 @@ public class AssessmentServiceTests : IDisposable
         _db.PracticeTasks.Add(task);
         await _db.SaveChangesAsync();
 
-        var practiceService = new PracticeService(_uow.Object, executionMock.Object, emitterMock.Object, schedulerMock.Object);
+        var practiceService = new PracticeService(
+            _uow.Object,
+            new PracticeAccessService(_uow.Object),
+            new MaxAttemptsPolicy(_uow.Object),
+            executionMock.Object,
+            new PracticeTierCalculationPolicy(),
+            new PracticeAttemptService(_uow.Object),
+            new ProgressionService(_uow.Object),
+            emitterMock.Object,
+            schedulerMock.Object);
 
         var submitResult = await practiceService.SubmitCode(PlayerId, new CodeSubmitRequestDto
         {

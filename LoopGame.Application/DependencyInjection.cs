@@ -29,10 +29,17 @@ public static class DependencyInjection
         services.AddScoped<IEconomyService, EconomyService>();
         services.AddScoped<IShopService, ShopService>();
         services.AddScoped<ISahmService, SahmService>();
-        services.AddScoped<IPracticeService, PracticeService>();
-        services.AddScoped<IScenarioGeneratorService, ScenarioGeneratorService>();
         services.AddScoped<INarrativeService, NarrativeService>();
         services.AddScoped<IChoiceService, ChoiceService>();
+
+        // ── Practice Layer ────────────────────────────────────────────────────
+        services.AddScoped<IPracticeAccessService, PracticeAccessService>();
+        services.AddScoped<IAttemptPolicy, MaxAttemptsPolicy>();
+        services.AddScoped<ITierCalculationPolicy, PracticeTierCalculationPolicy>();
+        services.AddScoped<IPracticeAttemptService, PracticeAttemptService>();
+        services.AddScoped<IProgressionService, ProgressionService>();
+        services.AddScoped<IPracticeService, PracticeService>();
+        services.AddScoped<IScenarioGeneratorService, ScenarioGeneratorService>();
 
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
         {
