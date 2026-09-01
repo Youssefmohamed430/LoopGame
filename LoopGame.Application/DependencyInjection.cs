@@ -1,10 +1,15 @@
-using LoopGame.Application.BackgroundJobs;
+using Hangfire;
+using Hangfire.PostgreSql;
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
+using LoopGame.Application.Options;
 using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
 using LoopGame.Application.Services.LearningAndContentServices;
+using LoopGame.Application.Services.SystemAndUtilityServices;
+using LoopGame.Infrastructure.Identity;
 using System.Reflection;
 using Microsoft.Extensions.Configuration;
+using System.Reflection;
 
 namespace LoopGame.Application;
 
@@ -14,7 +19,7 @@ namespace LoopGame.Application;
 /// </summary>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration Configuration)
     {
         var config = TypeAdapterConfig.GlobalSettings;
         config.Scan(Assembly.GetExecutingAssembly());
@@ -24,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IShopService, ShopService>();
         services.AddScoped<ISahmService, SahmService>();
         services.AddScoped<IPracticeService, PracticeService>();
+        services.AddScoped<BackgroundJob, Services.SystemAndUtilityServices.ScenarioGeneratorService>();
         services.AddScoped<INarrativeService, NarrativeService>();
         services.AddScoped<IChoiceService, ChoiceService>();
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
@@ -32,13 +38,28 @@ public static class DependencyInjection
             var baseUrl = configuration["CodeRunner:BaseUrl"] ?? "http://localhost:5000";
             client.BaseAddress = new Uri(baseUrl);
         });
+        services.AddHangfire(config =>
+            config.UsePostgreSqlStorage(options =>
+            {
+                options.UseNpgsqlConnection(
+                    Configuration.GetConnectionString("DefaultConnection"));
+            }));
 
-        services.AddScoped<IAssessmentService, AssessmentService>();
-        services.AddScoped<IAssessmentEventEmitter, HangfireAssessmentEventEmitter>();
-        services.AddScoped<IAssessmentJobScheduler, AssessmentJobScheduler>();
-        services.AddScoped<AssessmentJobs>();
+        services.AddHangfireServer();
+        services.Configure<JwtSettings>(
+             Configuration.GetSection("JwtSettings"));
 
-        services.AddAutoMapper(Assembly.GetExecutingAssembly());
+        services.Configure<EmailSettings>(
+            Configuration.GetSection("EmailSettings"));
+
+        services.Configure<SupabaseS3Settings>(
+            Configuration.GetSection("SupabaseS3Settings"));
+
+        services.AddScoped<ISideTaskService, SideTaskService>();
+        services.AddScoped<ISaveService, SaveService>();
+        services.AddScoped<IAdminService, AdminService>();
+        services.AddSingleton<IAssessmentEventEmitter, NoopAssessmentEventEmitter>();
+
 
         return services;
     }

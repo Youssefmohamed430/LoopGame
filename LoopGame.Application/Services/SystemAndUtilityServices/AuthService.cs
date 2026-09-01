@@ -1,10 +1,8 @@
-using AutoMapper;
 using LoopGame.Application.Dtos.AuthServiceDtos;
-using LoopGame.Application.IServices.SystemAndUtilityServices;
-using LoopGame.Domain.Entities.Identity;
-using LoopGame.Domain.Entities.Player;
+using LoopGame.Application.Utilities;
 using LoopGame.Domain.Enums.AuthModule;
 using LoopGame.Infrastructure.Identity;
+using MapsterMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;

@@ -85,14 +85,12 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices
             var storedToken = repository.FindWithTracking(
             t =>
                 t.TokenHash == tokenHash &&
-                t.RevokedAt == null &&
                 t.ExpiresAt > DateTime.UtcNow);
 
             if (storedToken == null)
                 return Result.Failure<UserToReturnDto>(AuthErrors.InvalidRefreshToken());
 
             var user = await _userManager.FindByIdAsync(storedToken.UserId.ToString());
-
 
             if (storedToken.RevokedAt != null)
                 return Result.Failure<UserToReturnDto>(

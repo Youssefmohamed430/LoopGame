@@ -1,5 +1,4 @@
-﻿using LoopGame.Application.IServices.SystemAndUtilityServices;
-using LoopGame.Infrastructure.Email;
+﻿using LoopGame.Application.Options;
 using LoopGame.Infrastructure.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -11,7 +10,7 @@ using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoopGame.Application.Services.SystemAndUtilityServices
+namespace LoopGame.Application.Utilities
 {
     public class EmailService : IEmailService
     {

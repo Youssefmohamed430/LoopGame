@@ -10,11 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Infrastructure services (registers AppDbContext with PostgreSQL using connection string from .env)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.Configure<JwtSettings>(
-    builder.Configuration.GetSection("JwtSettings"));
 
-builder.Services.Configure<EmailSettings>(
-    builder.Configuration.GetSection("EmailSettings"));
 
 
 // Add Application services
@@ -42,7 +38,7 @@ if (app.Environment.IsDevelopment())
     // Expose the Hangfire dashboard in development only
     app.MapHangfireDashboard("/hangfire");
 }
-
+app.UseHangfireDashboard("/hangfire");
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

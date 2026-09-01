@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoopGame.Infrastructure.Email
+namespace LoopGame.Application.Options
 {
     public class EmailSettings
     {

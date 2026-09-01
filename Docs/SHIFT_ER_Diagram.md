@@ -1,4 +1,4 @@
-﻿# SHIFT Game — Database ER Diagram & Schema Documentation
+# SHIFT Game — Database ER Diagram & Schema Documentation
 **SQL Server (Unified `dbo` Schema) | ASP.NET Identity | .NET 8+ EF Core | Version 2.2 | Graduate Project — Helwan University, CS Department**
 
 ---
@@ -83,15 +83,14 @@ The following diagram uses crow's-foot notation to depict entity relationships a
                               │          | consequence │                                           │ SideTaskTemplate  │
                               └─────┬──────────────────┘                                           └────────┬──────────┘
                                     │ *                                                                     │ 1
-                                    ▼                                                                       ▼ *
-                              ┌──────────┐     1       * ┌──────────────┐                          ┌───────────────────┐
-                              │  Shift   ├───────────────┤ PracticeTask │                          │  AiGenerationLog  │
-                              └──────────┘               └──────┬───────┘                          └───────────────────┘
-                                    ▲                           │ 1
-                                    │                           ▼ *
-                              ┌─────┴──────────┐        ┌──────────────┐
-                              │  Consequence   │        │PracticeAttempt│
-                              │ beat_id (1:1)  │        └──────────────┘
+┌──────────┐     *       1 ┌──────────┐     1       * ┌──────────────┐                          ┌───────────────────┐
+│SheetFile │───────────────┤  Shift   ├───────────────┤ PracticeTask │                          │  AiGenerationLog  │
+└──────────┘               └──────────┘               └──────┬───────┘                          └───────────────────┘
+                                    ▲                        │ 1
+                                    │                        ▼ *
+                              ┌─────┴──────────┐      ┌──────────────┐
+                              │  Consequence   │      │PracticeAttempt│
+                              │ beat_id (1:1)  │      └──────────────┘
                               └────────┬───────┘
                                        │ 1
                                        ▼ *
@@ -110,7 +109,7 @@ Using a single default database schema (`dbo`) simplifies maintenance while keep
 | Logical Domain | Tables | Application Layer Responsibilities | Backup Strategy |
 |---|---|---|---|
 | **Identity & Access** | `ApplicationUser`, `ApplicationRole`, `ApplicationUserRole`, `ClassCode`, `RefreshToken` | Authentication, authorization, password security, session refresh tokens. | Hourly |
-| **Content & Narrative** | `Shift`, `StoryBeat`, `Choice`, `Consequence`, `PracticeTask`, `TestCase`, `SideTaskTemplate` | Pre-authored story shifts, dialogue beats, choices, tasks, and test blueprints. | Weekly |
+| **Content & Narrative** | `Shift`, `StoryBeat`, `Choice`, `Consequence`, `PracticeTask`, `TestCase`, `SideTaskTemplate`, `SheetFile` | Pre-authored story shifts, dialogue beats, choices, tasks, test blueprints, and uploaded S3 question sheet files. | Weekly |
 | **Runtime Player State** | `Player`, `PlayerSave`, `PlayerChoice`, `PlayerShiftProgress`, `PracticeAttempt`, `ConsequenceQueue`, `PlayerSideTask`, `SideTaskSubmission`, `SideTaskHint` | Active gameplay progress, LoopOS desktop saves, code submissions, queued consequences, AI side task hints. | Hourly |
 | **Economy & Finance** | `PlayerEconomy`, `Transaction`, `ShopItem`, `PlayerInventory`, `SahmSubscription` | Virtual EGP balance ledger, salary management, virtual shop, Sahm AI subscriptions. | Daily |
 | **Stealth Assessment** | `AssessmentEvent`, `ConceptMasterySnapshot` | Educational research analytics, stealth learning event logs, concept mastery tracking. | Daily |
@@ -497,6 +496,37 @@ CREATE TABLE SideTaskTemplate (
     CONSTRAINT CHK_Template_SlotsJSON CHECK (ISJSON(slots_schema) = 1)
 );
 ```
+
+---
+
+#### `SheetFile`
+
+**Purpose:** Stores metadata for question sheet files (e.g. CSV practice task sheets) uploaded by instructors/admins and stored in AWS S3. Keeps track of the returned S3 Object Key, original filename, and associated `shift_id`.
+
+```sql
+CREATE TABLE SheetFile (
+    sheet_file_id   INT           IDENTITY(1,1) PRIMARY KEY,
+    shift_id        INT           NOT NULL,            -- FK → Shift
+    file_name       NVARCHAR(255) NOT NULL,            -- Original filename (e.g. "Arrays_Practice_Sheet.csv")
+    s3_key          NVARCHAR(500) NOT NULL UNIQUE,     -- S3 Object Key returned after upload
+    file_size_bytes BIGINT        NULL,                -- File size in bytes
+    uploaded_by     INT           NULL,                -- FK → ApplicationUser (Instructor/Admin)
+    uploaded_at     DATETIME2(3)  NOT NULL DEFAULT SYSUTCDATETIME(),
+
+    CONSTRAINT FK_SheetFile_Shift FOREIGN KEY (shift_id) REFERENCES Shift(shift_id) ON DELETE CASCADE,
+    CONSTRAINT FK_SheetFile_Uploader FOREIGN KEY (uploaded_by) REFERENCES ApplicationUser(user_id)
+);
+```
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `sheet_file_id` | `INT` | PK, IDENTITY | Surrogate primary key |
+| `shift_id` | `INT` | FK → `Shift`, NOT NULL | The narrative workday / chapter shift this question sheet belongs to |
+| `file_name` | `NVARCHAR(255)` | NOT NULL | Original filename of the uploaded question sheet (e.g. `c_pointers_sheet.csv`) |
+| `s3_key` | `NVARCHAR(500)` | NOT NULL, UNIQUE | S3 object storage key returned after file upload |
+| `file_size_bytes` | `BIGINT` | NULL | Size of the uploaded file in bytes |
+| `uploaded_by` | `INT` | FK → `ApplicationUser`, NULL | Instructor or administrator user account who uploaded the file |
+| `uploaded_at` | `DATETIME2(3)` | NOT NULL | UTC creation/upload timestamp |
 
 ---
 
@@ -1240,6 +1270,8 @@ public record ParsedAiSlots(
 | `Player` | `ConceptMasterySnapshot` | `player_id` | 1 : many | Per-shift concept mastery snapshots |
 | `SideTaskTemplate` | `AiGenerationLog` | `template_id` | 1 : many | LLM audit log entries |
 | `ApplicationUser` | `AuditLog` | `user_id` | 1 : many | Administrative audit log |
+| `Shift` | `SheetFile` | `shift_id` | 1 : many | Question sheet files stored in S3 for a shift |
+| `ApplicationUser` | `SheetFile` | `uploaded_by` | 1 : many | Instructor/admin file uploads |
 
 ---
 
@@ -1283,6 +1315,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<ConceptMasterySnapshot> ConceptMasterySnapshots => Set<ConceptMasterySnapshot>();
     public DbSet<AiGenerationLog> AiGenerationLogs => Set<AiGenerationLog>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<SheetFile> SheetFiles => Set<SheetFile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -1333,6 +1366,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .WithMany()
             .HasForeignKey(h => h.SideTaskId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // SheetFile 1:N with Shift
+        modelBuilder.Entity<SheetFile>()
+            .HasOne<Shift>()
+            .WithMany()
+            .HasForeignKey(sf => sf.ShiftId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 ```
@@ -1356,6 +1396,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 | `AssessmentEvent` | `IX_Assessment_Player_Type` | `(player_id, event_type, recorded_at DESC)` | Composite | AI weakest concept calculation |
 | `AiGenerationLog` | `IX_AiLog_Expiry` | `(expires_at)` | Standard | Scheduled 2-year retention cleanup job |
 | `SideTaskHint` | `IX_SideTaskHint_Task_Level` | `(side_task_id, hint_level)` | Composite Unique | Fast lookup of side task hints by level |
+| `SheetFile` | `IX_SheetFile_Shift` | `(shift_id)` | Standard | Fast lookup of question sheet files per shift |
+| `SheetFile` | `IX_SheetFile_S3Key` | `(s3_key)` | Unique | Fast lookup of sheet metadata by S3 object key |
 
 ---
 

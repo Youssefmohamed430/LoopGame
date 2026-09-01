@@ -29,7 +29,22 @@ public static class ResultHttpMapping
 
         "Economy.PlayerNotFound" or
         "Economy.PlayerEconomyNotFound" or
-        "Shop.ItemNotFoundOrUnavailable"                            => 404,
+        "Shop.ItemNotFoundOrUnavailable" or
+        "SideTask.TaskNotFound" or
+        "SideTask.NoActiveTask" or
+        "Save.SaveNotFound" or
+        "Admin.ShiftNotFound" or
+        "Admin.TaskNotFound" or
+        "Admin.PlayerNotFound" or
+        "Admin.TemplateNotFound"                                    => 404,
+
+        "SideTask.TaskExpired"                                      => 410, // Gone
+
+        "SideTask.TaskAlreadyClosed" or
+        "Admin.DuplicateTaskOrder"                                  => 409, // Conflict
+
+        "Admin.InvalidFileFormat" or
+        "Save.InvalidSlot"                                          => 400,
 
         // ── Narrative not-found errors → 404 ─────────────────────────────
         "Narrative.ShiftNotFound" or
