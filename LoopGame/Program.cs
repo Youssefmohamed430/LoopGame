@@ -1,7 +1,7 @@
 // Load environment variables from root .env file into System.Environment
 using Hangfire;
 using Hangfire.PostgreSql;
-using LoopGame.Infrastructure.Email;
+
 
 Env.TraversePath().Load();
 
@@ -14,7 +14,7 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 
 // Add Application services
-builder.Services.AddApplication();
+builder.Services.AddApplication(builder.Configuration);
 
 // ── Hangfire ─────────────────────────────────────────────────────────────
 // Uses the same PostgreSQL connection string as EF Core.
