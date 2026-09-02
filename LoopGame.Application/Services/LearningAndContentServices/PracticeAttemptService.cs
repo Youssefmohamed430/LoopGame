@@ -15,23 +15,20 @@ public sealed class PracticeAttemptService(IUnitOfWork _uow) : IPracticeAttemptS
 {
     public async Task<int> RecordAttemptAsync(
         int playerId,
-        int taskId,
-        string submittedCode,
         ChoiceTier tier,
         IReadOnlyList<TestCaseResult> testResults,
-        bool hintUsed,
-        int timeSpentSec,
+        CodeSubmitRequestDto code,
         CancellationToken ct = default)
     {
         var attempt = new PracticeAttempt
         {
             PlayerId      = playerId,
-            TaskId        = taskId,
-            SubmittedCode = submittedCode,
+            TaskId        = code.TaskId,
+            SubmittedCode = code.SubmittedCode,
             Tier          = tier,
             TestResults   = JsonSerializer.Serialize(testResults),
-            HintUsed      = hintUsed,
-            TimeSpentSec  = timeSpentSec
+            HintUsed      = code.HintUsed,
+            TimeSpentSec  = code.TimeSpentSec
         };
 
         await _uow.GetRepository<PracticeAttempt>().AddAsync(attempt);

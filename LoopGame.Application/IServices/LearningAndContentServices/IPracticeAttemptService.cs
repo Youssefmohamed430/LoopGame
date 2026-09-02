@@ -18,11 +18,8 @@ public interface IPracticeAttemptService
     /// </summary>
     Task<int> RecordAttemptAsync(
         int playerId,
-        int taskId,
-        string submittedCode,
         ChoiceTier tier,
         IReadOnlyList<TestCaseResult> testResults,
-        bool hintUsed,
-        int timeSpentSec,
+        CodeSubmitRequestDto  code,
         CancellationToken ct = default);
 }
