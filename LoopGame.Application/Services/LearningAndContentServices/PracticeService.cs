@@ -24,7 +24,7 @@ public class PracticeService(
     ITierCalculationPolicy     _tierPolicy,
     IPracticeAttemptService    _attemptService,
     IProgressionService        _progressionService,
-    IAssessmentEventEmitter    _assessmentEmitter,
+    IEventPublisher            _eventPublisher,
     IAssessmentJobScheduler    _assessmentJobScheduler)
     : IPracticeService
 {
@@ -83,9 +83,7 @@ public class PracticeService(
         var tier = _tierPolicy.Calculate(testResults);
 
         // ── 6. Record PracticeAttempt (staged, not yet committed) ──────────────
-        var attemptId = await _attemptService.RecordAttemptAsync(
-            PlayerId, code.TaskId, code.SubmittedCode, tier,
-            testResults, code.HintUsed, code.TimeSpentSec);
+        var attemptId = await _attemptService.RecordAttemptAsync(PlayerId, tier,testResults, code);
 
         // ── 7. Process PlayerShiftProgress / Gate (staged, not yet committed) ──
         var progressResult = await _progressionService.ProcessSubmissionAsync(ctx.ShiftProgress, tier);
@@ -98,7 +96,7 @@ public class PracticeService(
         await _uow.SaveAsync();
 
         // ── 9. Emit PracticeAttempt assessment event (fire-and-forget) ─────────
-        _assessmentEmitter.Emit(new AssessmentEventDto(
+        _eventPublisher.Publish(new GameEventDto(
             PlayerId,
             EventType:   AssessmentWeights.EventTypes.PracticeAttempt,
             ConceptTag:  task.ConceptTag,
@@ -114,14 +112,14 @@ public class PracticeService(
         // ── 10. If gate was cleared: emit telemetry + schedule mastery ─────────
         if (gateProgress.GateCleared)
         {
-            _assessmentEmitter.Emit(new AssessmentEventDto(
+            _eventPublisher.Publish(new GameEventDto(
                 PlayerId,
                 EventType:   AssessmentWeights.EventTypes.GateCleared,
                 ConceptTag:  null,
                 Tier:        null,
                 PayloadJson: JsonSerializer.Serialize(new { shiftId = ctx.ShiftId, taskId = code.TaskId })));
 
-            _assessmentEmitter.Emit(new AssessmentEventDto(
+            _eventPublisher.Publish(new GameEventDto(
                 PlayerId,
                 EventType:   AssessmentWeights.EventTypes.ShiftCompleted,
                 ConceptTag:  null,
