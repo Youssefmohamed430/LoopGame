@@ -10,6 +10,7 @@ public class PlayerSideTask
     public int            PlayerId             { get; set; }
     public int            TemplateId           { get; set; }
     public int?           AiLogId              { get; set; }
+    // Title and description to the task.
     public string         ResolvedTitle        { get; set; } = string.Empty;
     public string         ResolvedDescription  { get; set; } = string.Empty;
 
@@ -19,7 +20,6 @@ public class PlayerSideTask
     public decimal        EgpReward            { get; set; }
     public SideTaskStatus Status               { get; set; } = SideTaskStatus.Active;
     public DateTime       AssignedAt           { get; set; } = DateTime.UtcNow;
-    public DateTime?      DeadlineAt           { get; set; }
     public DateTime?      CompletedAt          { get; set; }
 
     // Navigation
@@ -28,4 +28,6 @@ public class PlayerSideTask
     public Audit.AiGenerationLog?    AiLog       { get; set; }
     public ICollection<SideTaskSubmission> Submissions { get; set; } = [];
     public ICollection<SideTaskHint>      Hints       { get; set; } = [];
+    public ICollection<TestCase> TestCases { get; set; } = [];
+
 }

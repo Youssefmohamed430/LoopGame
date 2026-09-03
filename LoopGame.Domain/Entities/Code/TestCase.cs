@@ -9,7 +9,7 @@ public class TestCase
 {
     public int     TestCaseId      { get; set; }
     public int?    TaskId          { get; set; }       // FK → PracticeTask (nullable)
-    public int?    TemplateId      { get; set; }       // FK → SideTaskTemplate (nullable)
+    public int?    SideTaskId      { get; set; }       // FK → SideTaskTemplate (nullable)
     public string  TestInput       { get; set; } = string.Empty;
     public string  ExpectedOutput  { get; set; } = string.Empty;
     public bool    IsHidden        { get; set; } = false;
@@ -17,5 +17,6 @@ public class TestCase
 
     // Navigation
     public PracticeTask?       Task     { get; set; }
+    public PlayerSideTask?     SideTask { get; set; }
     public SideTaskTemplate?   Template { get; set; }
 }

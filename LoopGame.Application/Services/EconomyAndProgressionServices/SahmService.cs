@@ -13,7 +13,7 @@ namespace LoopGame.Application.Services.EconomyAndProgressionServices;
 /// </summary>
 public class SahmService(
     IUnitOfWork _uow,
-    IAssessmentEventEmitter _eventEmitter) : ISahmService
+    IEventPublisher _eventPublisher) : ISahmService
 {
     public async Task<Result<HintResponseDto>> RequestHintAsync(
         int playerId, HintRequestDto request, CancellationToken ct = default)
@@ -50,7 +50,7 @@ public class SahmService(
         await _uow.SaveAsync(ct); // single save for this use case
 
         // Telemetry: fire-and-forget, after persistence, outside any money transaction.
-        _eventEmitter.Emit(new AssessmentEventDto(
+        _eventPublisher.Publish(new GameEventDto(
             playerId,
             EventType: AssessmentWeights.EventTypes.HintRequest,
             ConceptTag: request.ConceptTag,

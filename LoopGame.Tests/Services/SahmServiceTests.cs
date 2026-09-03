@@ -16,7 +16,7 @@ public class SahmServiceTests : IDisposable
 
     private readonly AppDbContext _db;
     private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly List<AssessmentEventDto> _emitted = [];
+    private readonly List<GameEventDto> _emitted = [];
     private readonly SahmService _sut;
 
     public SahmServiceTests()
@@ -32,11 +32,11 @@ public class SahmServiceTests : IDisposable
         _uow.Setup(u => u.SaveAsync(It.IsAny<CancellationToken>()))
             .Returns((CancellationToken ct) => _db.SaveChangesAsync(ct));
 
-        var emitter = new Mock<IAssessmentEventEmitter>();
-        emitter.Setup(e => e.Emit(It.IsAny<AssessmentEventDto>()))
-               .Callback<AssessmentEventDto>(e => _emitted.Add(e));
+        var publisher = new Mock<IEventPublisher>();
+        publisher.Setup(e => e.Publish(It.IsAny<GameEventDto>()))
+               .Callback<GameEventDto>(e => _emitted.Add(e));
 
-        _sut = new SahmService(_uow.Object, emitter.Object);
+        _sut = new SahmService(_uow.Object, publisher.Object);
     }
 
     private async Task<SahmSubscription> SeedSubscriptionAsync(

@@ -12,4 +12,5 @@ global using LoopGame.Domain.ValueObjects;
 global using LoopGame.Infrastructure.Persistence;
 global using Infrastructure.Repositories;
 global using LoopGame.Application.Dtos;
+global using LoopGame.Application.IServices.Events;
 global using LoopGame.Application.Services;

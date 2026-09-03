@@ -1,6 +1,7 @@
 using LoopGame.Application.Dtos.NarrativeDtos;
 using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LoopGame.Controllers;
@@ -19,9 +20,11 @@ namespace LoopGame.Controllers;
 ///   /api/admin/beats    — StoryBeat management
 /// </summary>
 [ApiController]
+[Authorize(Roles = "Admin")]
 [Route("api/admin")]
-// TODO(auth): [Authorize(Roles = "Admin")]
-public class NarrativeAdminController(INarrativeService _narrative) : ControllerBase
+public class NarrativeAdminController(
+    INarrativeService _narrative,
+    IChoiceService _choice) : ControllerBase
 {
     // ═══════════════════════════════════════════════════════════════════════
     // Shift endpoints
@@ -114,6 +117,26 @@ public class NarrativeAdminController(INarrativeService _narrative) : Controller
             return result.Error.ToActionResult();
         return NoContent();
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Choice endpoints
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Creates one or more choices for story beats.
+    /// Validation: max 4 choices per beat, valid consequence references, no duplicates.
+    /// </summary>
+    [HttpPost("choices")]
+    public async Task<ActionResult<List<ChoiceDto>>> AddChoice([FromBody] List<CreateChoiceDto> choices)
+        => await Handle(_choice.AddChoice(choices));
+
+    /// <summary>
+    /// Updates editable choice properties.
+    /// </summary>
+    [HttpPut("choices/{choiceId:int}")]
+    public async Task<ActionResult<ChoiceDto>> UpdateChoice(
+        int choiceId, [FromBody] UpdateChoiceDto dto)
+        => await Handle(_choice.UpdateChoice(choiceId, dto));
 
     // ═══════════════════════════════════════════════════════════════════════
     // Private helpers — mirrors the pattern used in EconomyController

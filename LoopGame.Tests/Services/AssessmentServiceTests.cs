@@ -182,11 +182,11 @@ public class AssessmentServiceTests : IDisposable
     [Fact]
     public async Task Test4_ProgressionFlow_IdealAttempt_ClearsGate()
     {
-        // Setup emitter spy
-        var emittedEvents = new List<AssessmentEventDto>();
-        var emitterMock = new Mock<IAssessmentEventEmitter>();
-        emitterMock.Setup(e => e.Emit(It.IsAny<AssessmentEventDto>()))
-            .Callback<AssessmentEventDto>(e => emittedEvents.Add(e));
+        // Setup publisher spy
+        var emittedEvents = new List<GameEventDto>();
+        var publisherMock = new Mock<IEventPublisher>();
+        publisherMock.Setup(e => e.Publish(It.IsAny<GameEventDto>()))
+            .Callback<GameEventDto>(e => emittedEvents.Add(e));
 
         var schedulerMock = new Mock<IAssessmentJobScheduler>();
 
@@ -241,7 +241,16 @@ public class AssessmentServiceTests : IDisposable
         _db.PracticeTasks.Add(task);
         await _db.SaveChangesAsync();
 
-        var practiceService = new PracticeService(_uow.Object, executionMock.Object, emitterMock.Object, schedulerMock.Object);
+        var practiceService = new PracticeService(
+            _uow.Object,
+            new PracticeAccessService(_uow.Object),
+            new MaxAttemptsPolicy(_uow.Object),
+            executionMock.Object,
+            new PracticeTierCalculationPolicy(),
+            new PracticeAttemptService(_uow.Object),
+            new ProgressionService(_uow.Object),
+            publisherMock.Object,
+            schedulerMock.Object);
 
         var submitResult = await practiceService.SubmitCode(PlayerId, new CodeSubmitRequestDto
         {
@@ -260,11 +269,11 @@ public class AssessmentServiceTests : IDisposable
     [Fact]
     public async Task Test5_GateCleared_EmittedWithNullConceptTag()
     {
-        // Setup emitter spy
-        var emittedEvents = new List<AssessmentEventDto>();
-        var emitterMock = new Mock<IAssessmentEventEmitter>();
-        emitterMock.Setup(e => e.Emit(It.IsAny<AssessmentEventDto>()))
-            .Callback<AssessmentEventDto>(e => emittedEvents.Add(e));
+        // Setup publisher spy
+        var emittedEvents = new List<GameEventDto>();
+        var publisherMock = new Mock<IEventPublisher>();
+        publisherMock.Setup(e => e.Publish(It.IsAny<GameEventDto>()))
+            .Callback<GameEventDto>(e => emittedEvents.Add(e));
 
         var schedulerMock = new Mock<IAssessmentJobScheduler>();
 
@@ -314,7 +323,16 @@ public class AssessmentServiceTests : IDisposable
         _db.PracticeTasks.Add(task);
         await _db.SaveChangesAsync();
 
-        var practiceService = new PracticeService(_uow.Object, executionMock.Object, emitterMock.Object, schedulerMock.Object);
+        var practiceService = new PracticeService(
+            _uow.Object,
+            new PracticeAccessService(_uow.Object),
+            new MaxAttemptsPolicy(_uow.Object),
+            executionMock.Object,
+            new PracticeTierCalculationPolicy(),
+            new PracticeAttemptService(_uow.Object),
+            new ProgressionService(_uow.Object),
+            publisherMock.Object,
+            schedulerMock.Object);
 
         var submitResult = await practiceService.SubmitCode(PlayerId, new CodeSubmitRequestDto
         {

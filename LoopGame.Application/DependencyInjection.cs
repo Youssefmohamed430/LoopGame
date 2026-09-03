@@ -7,6 +7,7 @@ using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Application.IServices.SystemAndUtilityServices;
 using LoopGame.Application.Options;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
+using LoopGame.Application.Services.Events;
 using LoopGame.Application.Services.LearningAndContentServices;
 using LoopGame.Application.Services.SystemAndUtilityServices;
 using LoopGame.Infrastructure.Identity;
@@ -29,10 +30,17 @@ public static class DependencyInjection
         services.AddScoped<IEconomyService, EconomyService>();
         services.AddScoped<IShopService, ShopService>();
         services.AddScoped<ISahmService, SahmService>();
-        services.AddScoped<IPracticeService, PracticeService>();
-        services.AddScoped<IScenarioGeneratorService, ScenarioGeneratorService>();
         services.AddScoped<INarrativeService, NarrativeService>();
         services.AddScoped<IChoiceService, ChoiceService>();
+
+        // ── Practice Layer ────────────────────────────────────────────────────
+        services.AddScoped<IPracticeAccessService, PracticeAccessService>();
+        services.AddScoped<IAttemptPolicy, MaxAttemptsPolicy>();
+        services.AddScoped<ITierCalculationPolicy, PracticeTierCalculationPolicy>();
+        services.AddScoped<IPracticeAttemptService, PracticeAttemptService>();
+        services.AddScoped<IProgressionService, ProgressionService>();
+        services.AddScoped<IPracticeService, PracticeService>();
+        services.AddScoped<IScenarioGeneratorService, ScenarioGeneratorService>();
 
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
         {
@@ -52,9 +60,12 @@ public static class DependencyInjection
         services.AddScoped<ISaveService, SaveService>();
         services.AddScoped<IAdminService, AdminService>();
 
+        // ── Event Publishing Layer ────────────────────────────────────────────
+        services.AddScoped<IEventPublisher, InProcessEventPublisher>();
+        services.AddScoped<IEventHandler, AssessmentEventHandler>();
+
         // ── Assessment Layer ───────────────────────────────────────────────────
         services.AddScoped<IAssessmentService, AssessmentService>();
-        services.AddScoped<IAssessmentEventEmitter, HangfireAssessmentEventEmitter>();
         services.AddScoped<IAssessmentJobScheduler, AssessmentJobScheduler>();
         services.AddScoped<AssessmentJobs>();
 
