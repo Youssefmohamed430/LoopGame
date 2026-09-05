@@ -23,5 +23,4 @@ public class Shift
     public ICollection<Code.PracticeTask>                  PracticeTasks           { get; set; } = [];
     public ICollection<PlayerShiftProgress>                ShiftProgresses         { get; set; } = [];
     public ICollection<Assessment.ConceptMasterySnapshot>  MasterySnapshots        { get; set; } = [];
-    public ICollection<SheetFile>                          SheetFiles        { get; set; } = [];
 }

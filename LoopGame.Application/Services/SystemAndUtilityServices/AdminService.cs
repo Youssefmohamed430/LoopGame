@@ -24,14 +24,9 @@ public class AdminService : IAdminService
         _mapper = mapper;
         _userManager = userManager;
     }   
-    public async Task<Result> UploadAsync(int shiftId, int uploadedBy, IFormFile file)
+    public async Task<Result> UploadAsync(Concept concept, int uploadedBy, IFormFile file)
     {
-        var shiftExists = await _unitOfWork.GetRepository<Shift>().FindAll(s => s.ShiftId == shiftId).AnyAsync();
-        
-        if (!shiftExists)
-            return Result.Failure(AdminErrors.ShiftNotFound);
-
-        var existingFile = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.ShiftId == shiftId && f.FileName == file.FileName)
+        var existingFile = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.Concept == concept && f.FileName == file.FileName)
                                                                        .FirstOrDefaultAsync();
         if (existingFile != null) 
             return Result.Failure(FileErrors.FileAlreadyExists);
@@ -45,7 +40,7 @@ public class AdminService : IAdminService
 
         var sideTaskFile = new SheetFile
         {
-            ShiftId = shiftId,
+            Concept = concept,
             S3Key = s3Key.Value,
             FileName = file.FileName,
             UploadedAt = DateTime.UtcNow,
@@ -62,18 +57,13 @@ public class AdminService : IAdminService
             await _fileStorageService.DeleteAsync(s3Key.Value);
             return Result.Failure(FileErrors.FileUploadFailed);
         }
-        BackgroundJob.Enqueue<IScenarioGeneratorService>(processor => processor.ProcessAsync(sideTaskFile.Id));
 
         return Result.Success();
     }
-    public async Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(int shiftId)
-    {
-        var shiftExists = await _unitOfWork.GetRepository<Shift>().FindAll(s => s.ShiftId == shiftId).AnyAsync();
-        
-        if (!shiftExists)
-            return Result.Failure<List<SheetFileDto>>(AdminErrors.ShiftNotFound);
 
-        var files = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.ShiftId == shiftId).OrderByDescending(f => f.UploadedAt).ToListAsync();
+    public async Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(Concept concept)
+    {
+        var files = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.Concept == concept).OrderByDescending(f => f.UploadedAt).ToListAsync();
         var filesDto = _mapper.Map<List<SheetFileDto>>(files);
         return Result.Success(filesDto);
     }

@@ -83,8 +83,8 @@ The following diagram uses crow's-foot notation to depict entity relationships a
                               │          | consequence │                                           │ SideTaskTemplate  │
                               └─────┬──────────────────┘                                           └────────┬──────────┘
                                     │ *                                                                     │ 1
-┌──────────┐     *       1 ┌──────────┐     1       * ┌──────────────┐                          ┌───────────────────┐
-│SheetFile │───────────────┤  Shift   ├───────────────┤ PracticeTask │                          │  AiGenerationLog  │
+┌──────────┐               ┌──────────┐     1       * ┌──────────────┐                          ┌───────────────────┐
+│SheetFile │               │  Shift   ├───────────────┤ PracticeTask │                          │  AiGenerationLog  │
 └──────────┘               └──────────┘               └──────┬───────┘                          └───────────────────┘
                                     ▲                        │ 1
                                     │                        ▼ *
@@ -501,19 +501,19 @@ CREATE TABLE SideTaskTemplate (
 
 #### `SheetFile`
 
-**Purpose:** Stores metadata for question sheet files (e.g. CSV practice task sheets) uploaded by instructors/admins and stored in AWS S3. Keeps track of the returned S3 Object Key, original filename, and associated `shift_id`.
+**Purpose:** Stores metadata for question sheet files (e.g. CSV practice task sheets) uploaded by instructors/admins and stored in AWS S3. Keeps track of the returned S3 Object Key, original filename, and associated CS programming concept enum (`concept`).
 
 ```sql
 CREATE TABLE SheetFile (
     sheet_file_id   INT           IDENTITY(1,1) PRIMARY KEY,
-    shift_id        INT           NOT NULL,            -- FK → Shift
+    concept         VARCHAR(50)   NOT NULL
+                    CHECK (concept IN ('Basics', 'Variables', 'Conditionals', 'Loops', 'Functions', 'Arrays', 'Pointers', 'Strings', 'Structures', 'FileIO')), -- Concept Enum
     file_name       NVARCHAR(255) NOT NULL,            -- Original filename (e.g. "Arrays_Practice_Sheet.csv")
     s3_key          NVARCHAR(500) NOT NULL UNIQUE,     -- S3 Object Key returned after upload
     file_size_bytes BIGINT        NULL,                -- File size in bytes
     uploaded_by     INT           NULL,                -- FK → ApplicationUser (Instructor/Admin)
     uploaded_at     DATETIME2(3)  NOT NULL DEFAULT SYSUTCDATETIME(),
 
-    CONSTRAINT FK_SheetFile_Shift FOREIGN KEY (shift_id) REFERENCES Shift(shift_id) ON DELETE CASCADE,
     CONSTRAINT FK_SheetFile_Uploader FOREIGN KEY (uploaded_by) REFERENCES ApplicationUser(user_id)
 );
 ```
@@ -521,7 +521,7 @@ CREATE TABLE SheetFile (
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `sheet_file_id` | `INT` | PK, IDENTITY | Surrogate primary key |
-| `shift_id` | `INT` | FK → `Shift`, NOT NULL | The narrative workday / chapter shift this question sheet belongs to |
+| `concept` | `VARCHAR(50)` | NOT NULL, CHECK constraint | Educational C programming concept tag enum (e.g., Basics, Variables, Conditionals, Loops, Functions, Arrays, Pointers, Strings, Structures, FileIO) |
 | `file_name` | `NVARCHAR(255)` | NOT NULL | Original filename of the uploaded question sheet (e.g. `c_pointers_sheet.csv`) |
 | `s3_key` | `NVARCHAR(500)` | NOT NULL, UNIQUE | S3 object storage key returned after file upload |
 | `file_size_bytes` | `BIGINT` | NULL | Size of the uploaded file in bytes |
@@ -1270,7 +1270,6 @@ public record ParsedAiSlots(
 | `Player` | `ConceptMasterySnapshot` | `player_id` | 1 : many | Per-shift concept mastery snapshots |
 | `SideTaskTemplate` | `AiGenerationLog` | `template_id` | 1 : many | LLM audit log entries |
 | `ApplicationUser` | `AuditLog` | `user_id` | 1 : many | Administrative audit log |
-| `Shift` | `SheetFile` | `shift_id` | 1 : many | Question sheet files stored in S3 for a shift |
 | `ApplicationUser` | `SheetFile` | `uploaded_by` | 1 : many | Instructor/admin file uploads |
 
 ---
@@ -1367,12 +1366,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .HasForeignKey(h => h.SideTaskId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // SheetFile 1:N with Shift
+        // SheetFile Concept Enum configuration
         modelBuilder.Entity<SheetFile>()
-            .HasOne<Shift>()
-            .WithMany()
-            .HasForeignKey(sf => sf.ShiftId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .Property(sf => sf.Concept)
+            .HasConversion<string>();
     }
 }
 ```
@@ -1396,7 +1393,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 | `AssessmentEvent` | `IX_Assessment_Player_Type` | `(player_id, event_type, recorded_at DESC)` | Composite | AI weakest concept calculation |
 | `AiGenerationLog` | `IX_AiLog_Expiry` | `(expires_at)` | Standard | Scheduled 2-year retention cleanup job |
 | `SideTaskHint` | `IX_SideTaskHint_Task_Level` | `(side_task_id, hint_level)` | Composite Unique | Fast lookup of side task hints by level |
-| `SheetFile` | `IX_SheetFile_Shift` | `(shift_id)` | Standard | Fast lookup of question sheet files per shift |
+| `SheetFile` | `IX_SheetFile_Concept` | `(concept)` | Standard | Fast lookup of question sheet files by concept enum |
 | `SheetFile` | `IX_SheetFile_S3Key` | `(s3_key)` | Unique | Fast lookup of sheet metadata by S3 object key |
 
 ---

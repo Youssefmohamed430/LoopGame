@@ -10,6 +10,7 @@ using LoopGame.Application.Services.EconomyAndProgressionServices;
 using LoopGame.Application.Services.Events;
 using LoopGame.Application.Services.LearningAndContentServices;
 using LoopGame.Application.Services.SystemAndUtilityServices;
+using LoopGame.Application.Services.SystemAndUtilityServices.SideTaskModule;
 using LoopGame.Infrastructure.Identity;
 using Microsoft.Extensions.Configuration;
 
@@ -49,25 +50,35 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(baseUrl);
         });
 
+        services.AddHttpClient<IAiSideTaskClient, AiSideTaskHttpClient>((sp, client) =>
+        {
+            var cfg = configuration ?? sp.GetRequiredService<IConfiguration>();
+            var baseUrl = cfg["AiServiceSettings:BaseUrl"] ?? "http://localhost:8000";
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+
         if (configuration is not null)
         {
             services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
             services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
             services.Configure<SupabaseS3Settings>(configuration.GetSection("SupabaseS3Settings"));
+            services.Configure<AiServiceSettings>(configuration.GetSection("AiServiceSettings"));
         }
 
-        // services.AddScoped<ISideTaskService, SideTaskService>();
-        services.AddScoped<ISaveService, SaveService>();
+        services.AddScoped<ISideTaskService, SideTaskService>();
         services.AddScoped<IAdminService, AdminService>();
 
         // ── Event Publishing Layer ────────────────────────────────────────────
         services.AddScoped<IEventPublisher, InProcessEventPublisher>();
         services.AddScoped<IEventHandler, AssessmentEventHandler>();
+        services.AddScoped<IEventHandler, SideTaskGenerationEventHandler>();
 
         // ── Assessment Layer ───────────────────────────────────────────────────
         services.AddScoped<IAssessmentService, AssessmentService>();
         services.AddScoped<IAssessmentJobScheduler, AssessmentJobScheduler>();
         services.AddScoped<AssessmentJobs>();
+        services.AddScoped<SideTaskGenerationJobs>();
 
         return services;
     }

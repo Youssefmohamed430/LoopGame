@@ -19,7 +19,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
 
     [HttpPost("sheets/upload")]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult> UploadSheet([FromForm] IFormFile  file,[FromForm] int shiftId)
+    public async Task<ActionResult> UploadSheet([FromForm] IFormFile  file,[FromForm] Concept concept)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new {message = "File is required."});
@@ -31,7 +31,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
 
         var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        var result = await _adminService.UploadAsync(shiftId,adminId , file);
+        var result = await _adminService.UploadAsync(concept, adminId, file);
 
         if (result.IsFailure)
             return result.Error.ToActionResult();
@@ -42,10 +42,10 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
         });
     }
 
-    [HttpGet("sheets/list/{shiftId}")]
-    public async Task<ActionResult> ListUploadedFiles(int shiftId)
+    [HttpGet("sheets/list/{concept}")]
+    public async Task<ActionResult> ListUploadedFiles(Concept concept)
     {
-        var result = await _adminService.ListUploadedFilesAsync(shiftId);
+        var result = await _adminService.ListUploadedFilesAsync(concept);
 
         if (result.IsFailure)
             return result.Error.ToActionResult();

@@ -1,4 +1,9 @@
+using DocumentFormat.OpenXml.EMMA;
 using Hangfire;
+using LoopGame.Application.Dtos;
+using LoopGame.Application.IServices.Events;
+using LoopGame.Application.IServices.LearningAndContentServices;
+using LoopGame.Domain.Entities.Player;
 using Microsoft.Extensions.Logging;
 
 namespace LoopGame.Application.BackgroundJobs;
@@ -10,6 +15,7 @@ namespace LoopGame.Application.BackgroundJobs;
 /// </summary>
 public class AssessmentJobs(
     IAssessmentService _assessment,
+    IEventPublisher _eventPublisher,
     ILogger<AssessmentJobs> _logger)
 {
     /// <summary>
@@ -31,6 +37,17 @@ public class AssessmentJobs(
             _logger.LogWarning(
                 "ComputeMasteryJob failed for player {PlayerId}, shift {ShiftId}: {Error}",
                 playerId, shiftId, result.Error.Description);
+            return;
         }
+
+        // Publish assessment_completed event
+        _eventPublisher.Publish(new GameEventDto(
+            PlayerId: playerId,
+            EventType: "assessment_completed",
+            ConceptTag: null,
+            Tier: null,
+            PayloadJson: null));
+
+        
     }
 }

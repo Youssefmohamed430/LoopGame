@@ -1,4 +1,4 @@
-﻿using LoopGame.Domain.Enums.AuthModule;
+using LoopGame.Domain.Enums.AuthModule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ namespace LoopGame.Application.Dtos.AdminDtos
     public class SheetFileDto
     {
         public int Id { get; set; }
-        public int ShiftId { get; set; }
+        public Concept Concept { get; set; }
         public string FileName { get; set; }
         public string S3Key { get; set; }
         public string Status { get; set; }

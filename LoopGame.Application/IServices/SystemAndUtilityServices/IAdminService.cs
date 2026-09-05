@@ -6,8 +6,8 @@ namespace LoopGame.Application.IServices.SystemAndUtilityServices;
 public interface IAdminService
 {
 
-    Task<Result> UploadAsync(int shiftId, int uploadedBy, IFormFile file);
-    Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(int shiftId);
+    Task<Result> UploadAsync(Concept concept, int uploadedBy, IFormFile file);
+    Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(Concept concept);
     Task<Result> DeleteUploadedFileAsync(int fileId);
     //Get players progress report for a specific shift
     Task<Result<List<PlayerShiftProgressDto>>> GetShiftStudentsProgressAsync(int shiftId);

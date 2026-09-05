@@ -10,8 +10,8 @@ namespace LoopGame.Domain.Entities.SideTask
     public class SheetFile
     {
         public int Id { get; set; }
-        public int ShiftId { get; set; }
         public string FileName { get; set; }
+        public Concept Concept { get; set; }
         public string S3Key { get; set; }
         public SheetFileStatus Status { get; set; }
         public DateTime UploadedAt { get; set; }

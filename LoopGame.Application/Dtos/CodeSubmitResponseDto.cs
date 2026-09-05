@@ -1,4 +1,4 @@
-﻿namespace LoopGame.Application.Dtos;
+namespace LoopGame.Application.Dtos;
 
 public class CodeSubmitResponseDto
 {
@@ -8,9 +8,9 @@ public class CodeSubmitResponseDto
 
     public bool GateCleared { get; set; }
 
-    //public decimal EgpEarned { get; set; }
+    public decimal EgpEarned { get; set; }
 
-    //public decimal? NewBalance { get; set; }
+    public decimal? NewBalance { get; set; }
 
     public bool StruggleDetected { get; set; }
 
