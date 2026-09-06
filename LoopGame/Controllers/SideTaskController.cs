@@ -14,8 +14,6 @@ namespace LoopGame.Controllers;
 /// - Abandon active side task with penalty
 /// - Retrieve and unlock pre-generated progressive hints (UC-SIDETASK-HINT-01/02)
 /// - Optional manual assignment fallback
-///
-/// TODO(identity): replace {playerId} route param with authenticated principal.
 /// </summary>
 [ApiController]
 [Route("api/sidetask")]

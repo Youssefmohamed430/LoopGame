@@ -25,7 +25,7 @@ public class ScenarioGeneratorService(
         _logger.LogInformation("Starting AI side task generation pipeline for player {PlayerId}", playerId);
 
         // 1. Get ALL weak concepts for the player, ordered weakest to strongest
-        var weakConceptsResult = await _assessmentService.GetWeakestConceptsAsync(playerId, topN: int.MaxValue, ct: ct);
+        var weakConceptsResult = await _assessmentService.GetWeakestConceptsAsync(playerId, ct: ct);
         if (weakConceptsResult.IsFailure || weakConceptsResult.Value is null || !weakConceptsResult.Value.Any())
         {
             _logger.LogWarning("No weak concepts found for player {PlayerId}", playerId);
@@ -119,7 +119,7 @@ public class ScenarioGeneratorService(
                 _logger.LogInformation("AI generation attempt {Attempt}/3 for concept '{Concept}', player {PlayerId}",
                     attempt, conceptTag, playerId);
 
-                var aiResult = await _aiClient.GenerateAsync(aiRequest, ct);
+                var aiResult = await _aiClient.GenerateAsync(aiRequest, ct); // Call external AI service
                 if (aiResult.IsFailure)
                 {
                     _logger.LogWarning("AI call failed on attempt {Attempt} for concept '{Concept}': {Error}",
