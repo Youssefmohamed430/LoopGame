@@ -34,9 +34,6 @@ public class PlayerSideTaskConfiguration : IEntityTypeConfiguration<PlayerSideTa
                .HasColumnType("timestamp with time zone")
                .HasDefaultValueSql("NOW()");
 
-        builder.Property(t => t.DeadlineAt)
-               .HasColumnType("timestamp with time zone");
-
         builder.Property(t => t.CompletedAt)
                .HasColumnType("timestamp with time zone");
 

@@ -6,7 +6,6 @@ public record SideTaskDto(
     string    Title,
     string    Description,
     decimal   EgpReward,
-    DateTime? DeadlineAt,
     string    Status,           // Active / Submitted / Abandoned / Expired
     string    ConceptTag
 );

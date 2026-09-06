@@ -2,7 +2,7 @@ namespace LoopGame.Domain.Enums;
 
 public enum HintLevel
 {
-    ConceptualNudge,
-    StructuralGuidance,
-    CodeSnippet
-}
+    ConceptualNudge = 1,
+    StructuralGuidance = 2,
+    CodeSnippet = 3
+}

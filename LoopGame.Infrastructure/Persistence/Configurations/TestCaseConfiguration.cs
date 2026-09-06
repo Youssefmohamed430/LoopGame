@@ -10,10 +10,10 @@ public class TestCaseConfiguration : IEntityTypeConfiguration<TestCase>
         builder.Property(t => t.Description)
                .HasMaxLength(500);
 
-        // CHECK: belongs to exactly one parent (task XOR template)
+        // CHECK: belongs to exactly one parent — either a PracticeTask or a PlayerSideTask
         builder.HasCheckConstraint("CHK_TestCase_Parent",
-            "(\"TaskId\" IS NOT NULL AND \"TemplateId\" IS NULL) OR " +
-            "(\"TaskId\" IS NULL AND \"TemplateId\" IS NOT NULL)");
+            "(\"TaskId\" IS NOT NULL AND \"SideTaskId\" IS NULL) OR " +
+            "(\"TaskId\" IS NULL AND \"SideTaskId\" IS NOT NULL)");
 
         builder.HasOne(t => t.Task)
                .WithMany(p => p.TestCases)
@@ -21,9 +21,9 @@ public class TestCaseConfiguration : IEntityTypeConfiguration<TestCase>
                .IsRequired(false)
                .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(t => t.Template)
+        builder.HasOne(t => t.SideTask)
                .WithMany(s => s.TestCases)
-               .HasForeignKey(t => t.TemplateId)
+               .HasForeignKey(t => t.SideTaskId)
                .IsRequired(false)
                .OnDelete(DeleteBehavior.Cascade);
     }

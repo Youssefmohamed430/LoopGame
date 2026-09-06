@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using System.Security.Cryptography;
 
-namespace LoopGame.Application.Services.SystemAndUtilityServices
+namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
 {
     public class AuthService : IAuthService
     {

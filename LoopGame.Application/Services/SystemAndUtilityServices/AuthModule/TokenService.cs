@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LoopGame.Application.Services.SystemAndUtilityServices
+namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
 {
     public class TokenService : ITokenService
     {

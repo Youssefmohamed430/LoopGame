@@ -24,5 +24,4 @@ public class SideTaskTemplate
     // Navigation
     public ICollection<PlayerSideTask>           PlayerSideTasks  { get; set; } = [];
     public ICollection<Audit.AiGenerationLog>    AiGenerationLogs { get; set; } = [];
-    public ICollection<Code.TestCase>            TestCases        { get; set; } = [];
 }

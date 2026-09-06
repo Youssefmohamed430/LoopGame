@@ -9,13 +9,13 @@ using LoopGame.Domain.Entities.SideTask;
 namespace LoopGame.Application.Services.SystemAndUtilityServices;
 
 public class SideTaskService(
-    IUnitOfWork _uow,
+    IUnitOfWork _unitOfWork,
     ICodeExecutionService _codeExecutor,
     IEconomyService _economy) : ISideTaskService
 {
     public async Task<Result<SideTaskDto>> GetActiveTaskAsync(int playerId, CancellationToken ct = default)
     {
-        var task = await _uow.GetRepository<PlayerSideTask>()
+        var task = await _unitOfWork.GetRepository<PlayerSideTask>()
             .FindAll(t => t.PlayerId == playerId && t.Status == SideTaskStatus.Active)
             .Select(t => new
             {
@@ -37,7 +37,6 @@ public class SideTaskService(
             task.ResolvedTitle,
             task.ResolvedDescription,
             task.EgpReward,
-            null,
             task.Status.ToString(),
             task.ConceptTag);
     }
@@ -46,7 +45,7 @@ public class SideTaskService(
         int playerId, SideTaskSubmitRequestDto dto, CancellationToken ct = default)
     {
         // 1. Load and guard the task.
-        var task = _uow.GetRepository<PlayerSideTask>()
+        var task = _unitOfWork.GetRepository<PlayerSideTask>()
             .FindWithTracking(t => t.SideTaskId == dto.SideTaskId && t.PlayerId == playerId);
 
         if (task is null)
@@ -56,7 +55,7 @@ public class SideTaskService(
             return Result.Failure<CodeSubmitResponseDto>(SideTaskErrors.TaskAlreadyClosed);
 
         // 2. Fetch all test cases for the side task.
-        var testCases = await _uow.GetRepository<TestCase>()
+        var testCases = await _unitOfWork.GetRepository<TestCase>()
             .FindAll(tc => tc.SideTaskId == task.SideTaskId)
             .ToListAsync(ct);
 
@@ -69,9 +68,9 @@ public class SideTaskService(
 
         var tier = passRate == 1.0
             ? ChoiceTier.Ideal
-            : passRate > 0.5
-                ? ChoiceTier.Debt
-                : ChoiceTier.Mistake;
+            : passRate >= 0.75 ? ChoiceTier.Acceptable
+                : passRate >= 0.5
+                    ? ChoiceTier.Debt: ChoiceTier.Mistake;
 
         // 5. EGP reward multiplier: Ideal=100%, Acceptable=75%, Debt=25%, Mistake=0%.
         decimal multiplier = tier switch
@@ -96,10 +95,10 @@ public class SideTaskService(
             EgpEarned     = egpEarned
         };
 
-        await _uow.GetRepository<SideTaskSubmission>().AddAsync(submission);
+        await _unitOfWork.GetRepository<SideTaskSubmission>().AddAsync(submission);
         task.Status      = SideTaskStatus.Submitted;
         task.CompletedAt = DateTime.UtcNow;
-        await _uow.SaveAsync(ct);
+        await _unitOfWork.SaveAsync(ct);
 
         // 7. Credit EGP if earned.
         if (egpEarned > 0)
@@ -132,7 +131,7 @@ public class SideTaskService(
     public async Task<Result<AbandonResultDto>> AbandonTaskAsync(
         int playerId, int sideTaskId, CancellationToken ct = default)
     {
-        var task = _uow.GetRepository<PlayerSideTask>()
+        var task = _unitOfWork.GetRepository<PlayerSideTask>()
             .FindWithTracking(t => t.SideTaskId == sideTaskId && t.PlayerId == playerId);
 
         if (task is null)
@@ -144,7 +143,7 @@ public class SideTaskService(
         // Mark abandoned first, then apply penalty via EconomyService.
         task.Status      = SideTaskStatus.Abandoned;
         task.CompletedAt = DateTime.UtcNow;
-        await _uow.SaveAsync(ct);
+        await _unitOfWork.SaveAsync(ct);
 
         var penaltyResult = await _economy.ApplyEgpDeltaAsync(
             playerId,
@@ -165,7 +164,7 @@ public class SideTaskService(
     public async Task<Result> AssignNewTaskAsync(int playerId, CancellationToken ct = default)
     {
         // Guard: player must not already have an active task.
-        var hasActive = await _uow.GetRepository<PlayerSideTask>()
+        var hasActive = await _unitOfWork.GetRepository<PlayerSideTask>()
             .FindAll(t => t.PlayerId == playerId && t.Status == SideTaskStatus.Active)
             .AnyAsync(ct);
 
@@ -173,7 +172,7 @@ public class SideTaskService(
             return Result.Failure(SideTaskErrors.AlreadyHasActiveTask);
 
         // Get player rank to filter eligible templates.
-        var rank = await _uow.GetRepository<Player>()
+        var rank = await _unitOfWork.GetRepository<Player>()
             .FindAll(p => p.PlayerId == playerId)
             .Select(p => (PlayerRank?)p.Rank)
             .FirstOrDefaultAsync(ct);
@@ -182,7 +181,7 @@ public class SideTaskService(
             return Result.Failure(EconomyErrors.PlayerNotFound);
 
         // Pick a random active template within rank requirement.
-        var templates = await _uow.GetRepository<SideTaskTemplate>()
+        var templates = await _unitOfWork.GetRepository<SideTaskTemplate>()
             .FindAll(t => t.IsActive && (int)t.RankRequired <= (int)rank.Value)
             .Select(t => new { t.TemplateId, t.TitleTemplate, t.DescriptionTemplate, t.EgpMin, t.EgpMax })
             .ToListAsync(ct);
@@ -207,8 +206,8 @@ public class SideTaskService(
             AssignedAt          = DateTime.UtcNow
         };
 
-        await _uow.GetRepository<PlayerSideTask>().AddAsync(newTask);
-        await _uow.SaveAsync(ct);
+        await _unitOfWork.GetRepository<PlayerSideTask>().AddAsync(newTask);
+        await _unitOfWork.SaveAsync(ct);
 
         return Result.Success();
     }

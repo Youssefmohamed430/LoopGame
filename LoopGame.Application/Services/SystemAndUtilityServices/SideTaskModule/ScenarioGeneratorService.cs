@@ -5,8 +5,10 @@ using LoopGame.Application.Utilities;
 using LoopGame.Domain.Entities.Audit;
 using LoopGame.Domain.Entities.Code;
 using LoopGame.Domain.Entities.SideTask;
+using LoopGame.Domain.Enums;
 using LoopGame.Domain.Enums.AuthModule;
 using Microsoft.Extensions.Logging;
+
 
 namespace LoopGame.Application.Services.SystemAndUtilityServices.SideTaskModule;
 
@@ -130,7 +132,7 @@ public class ScenarioGeneratorService(
                 // Validate each returned task independently
                 foreach (var taskDto in returnedTasks)
                 {
-                    if (IsValidTask(taskDto))
+                    if (IsValidTask(taskDto, template))
                     {
                         validTasks.Add(taskDto);
                     }
@@ -196,14 +198,38 @@ public class ScenarioGeneratorService(
                 {
                     var testCase = new TestCase
                     {
-                        SideTaskId = playerTask.SideTaskId,
-                        TestInput = tcDto.TestInput,
+                        SideTaskId     = playerTask.SideTaskId,
+                        TestInput      = tcDto.TestInput,
                         ExpectedOutput = tcDto.ExpectedOutput,
-                        IsHidden = tcDto.IsHidden,
-                        Description = tcDto.Description
+                        IsHidden       = tcDto.IsHidden,
+                        Description    = tcDto.Description
                     };
                     await _unitOfWork.GetRepository<TestCase>().AddAsync(testCase);
                 }
+
+                // Save AI-generated hints (up to 3 levels)
+                foreach (var hintDto in taskDto.Hints)
+                {
+                    if (!Enum.IsDefined(typeof(HintLevel), hintDto.HintLevel))
+                    {
+                        _logger.LogWarning("Skipping hint with invalid HintLevel {Level} for task '{Title}'",
+                            hintDto.HintLevel, taskDto.Title);
+                        continue;
+                    }
+
+                    var hint = new SideTaskHint
+                    {
+                        SideTaskId = playerTask.SideTaskId,
+                        HintLevel  = (HintLevel)hintDto.HintLevel,
+                        HintText   = hintDto.HintText,
+                        EgpCost    = hintDto.EgpCost,
+                        IsUnlocked = false,
+                        CreatedAt  = DateTime.UtcNow
+                    };
+                    await _unitOfWork.GetRepository<SideTaskHint>().AddAsync(hint);
+                }
+
+
                 await _unitOfWork.SaveAsync(ct);
             }
 
@@ -214,15 +240,20 @@ public class ScenarioGeneratorService(
         return Result.Success();
     }
 
-    private static bool IsValidTask(AiGeneratedTaskDto dto)
+    private static bool IsValidTask(AiGeneratedTaskDto dto, SideTaskTemplate template)
     {
         if (string.IsNullOrWhiteSpace(dto.Title)) return false;
         if (string.IsNullOrWhiteSpace(dto.Description)) return false;
+        if (dto.Difficulty <= 0) return false;
+        if (dto.EgpReward < template.EgpMin || dto.EgpReward > template.EgpMax) return false;
         if (dto.TestCases == null || dto.TestCases.Count == 0) return false;
+
         foreach (var tc in dto.TestCases)
         {
-            if (tc == null || tc.ExpectedOutput == null) return false;
+            if (tc == null) return false;
+            if (string.IsNullOrWhiteSpace(tc.ExpectedOutput)) return false;
         }
+
         return true;
     }
 }

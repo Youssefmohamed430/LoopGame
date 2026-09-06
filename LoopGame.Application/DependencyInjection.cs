@@ -1,18 +1,22 @@
-using System.Reflection;
+using Amazon.S3;
 using Hangfire;
 using Hangfire.PostgreSql;
 using LoopGame.Application.BackgroundJobs;
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
-using LoopGame.Application.IServices.LearningAndContentServices;
-using LoopGame.Application.IServices.SystemAndUtilityServices;
 using LoopGame.Application.Options;
 using LoopGame.Application.Services.EconomyAndProgressionServices;
 using LoopGame.Application.Services.Events;
 using LoopGame.Application.Services.LearningAndContentServices;
 using LoopGame.Application.Services.SystemAndUtilityServices;
 using LoopGame.Application.Services.SystemAndUtilityServices.SideTaskModule;
+using LoopGame.Application.Utilities;
 using LoopGame.Infrastructure.Identity;
+using MapsterMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using System;
+using System.Reflection;
 
 namespace LoopGame.Application;
 
@@ -28,11 +32,14 @@ public static class DependencyInjection
         config.Scan(Assembly.GetExecutingAssembly());
         services.AddSingleton(config);
 
+        services.AddScoped<IMapper, Mapper>();
+
         services.AddScoped<IEconomyService, EconomyService>();
         services.AddScoped<IShopService, ShopService>();
         services.AddScoped<ISahmService, SahmService>();
         services.AddScoped<INarrativeService, NarrativeService>();
         services.AddScoped<IChoiceService, ChoiceService>();
+
 
         // ── Practice Layer ────────────────────────────────────────────────────
         services.AddScoped<IPracticeAccessService, PracticeAccessService>();
@@ -42,6 +49,10 @@ public static class DependencyInjection
         services.AddScoped<IProgressionService, ProgressionService>();
         services.AddScoped<IPracticeService, PracticeService>();
         services.AddScoped<IScenarioGeneratorService, ScenarioGeneratorService>();
+        services.AddScoped<IFileStorageService, SupabaseS3StorageService>();
+        services.AddScoped<IFileContentReaderService, FileContentReaderService>();
+
+
 
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
         {
@@ -57,6 +68,8 @@ public static class DependencyInjection
             client.BaseAddress = new Uri(baseUrl);
             client.Timeout = TimeSpan.FromSeconds(60);
         });
+
+
 
         if (configuration is not null)
         {
@@ -79,6 +92,26 @@ public static class DependencyInjection
         services.AddScoped<IAssessmentJobScheduler, AssessmentJobScheduler>();
         services.AddScoped<AssessmentJobs>();
         services.AddScoped<SideTaskGenerationJobs>();
+
+        services.AddSingleton<IAmazonS3>(sp =>
+        {
+            var settings = sp
+                .GetRequiredService<IOptions<SupabaseS3Settings>>()
+                .Value;
+
+            var config = new AmazonS3Config
+            {
+                ServiceURL = settings.Endpoint,
+                ForcePathStyle = true,
+                AuthenticationRegion = settings.Region
+            };
+
+            return new AmazonS3Client(
+                settings.AccessKey,
+                settings.SecretKey,
+                config);
+        });
+        
 
         return services;
     }
