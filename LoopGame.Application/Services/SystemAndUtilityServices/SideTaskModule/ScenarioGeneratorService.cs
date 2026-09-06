@@ -162,7 +162,13 @@ public class ScenarioGeneratorService(
             // Sort valid tasks easiest to hardest by Difficulty
             var orderedTasks = validTasks.OrderBy(t => t.Difficulty).ToList();
 
-            // Save each valid task as PlayerSideTask + TestCase rows
+            // Check if the player already has an active task (from a previous concept iteration)
+            var hasActiveTask = await _unitOfWork.GetRepository<PlayerSideTask>()
+                .FindAll(t => t.PlayerId == playerId && t.Status == SideTaskStatus.Active)
+                .AnyAsync(ct);
+
+            // Save each valid task as PlayerSideTask + TestCase + Hint rows
+            bool firstTaskActivated = false;
             foreach (var taskDto in orderedTasks)
             {
                 var aiLog = new AiGenerationLog
@@ -179,6 +185,9 @@ public class ScenarioGeneratorService(
                 await _unitOfWork.GetRepository<AiGenerationLog>().AddAsync(aiLog);
                 await _unitOfWork.SaveAsync(ct);
 
+                // First task (easiest) → Active if player has no active task yet; rest → Queued
+                var shouldBeActive = !hasActiveTask && !firstTaskActivated;
+
                 var playerTask = new PlayerSideTask
                 {
                     PlayerId = playerId,
@@ -188,9 +197,12 @@ public class ScenarioGeneratorService(
                     ResolvedDescription = taskDto.Description,
                     FilledSlots = taskDto.FilledSlotsJson,
                     EgpReward = taskDto.EgpReward > 0 ? taskDto.EgpReward : template.EgpMin,
-                    Status = SideTaskStatus.Active,
+                    Difficulty = taskDto.Difficulty,
+                    Status = shouldBeActive ? SideTaskStatus.Active : SideTaskStatus.Queued,
                     AssignedAt = DateTime.UtcNow
                 };
+
+                if (shouldBeActive) firstTaskActivated = true;
                 await _unitOfWork.GetRepository<PlayerSideTask>().AddAsync(playerTask);
                 await _unitOfWork.SaveAsync(ct);
 
@@ -253,6 +265,9 @@ public class ScenarioGeneratorService(
             if (tc == null) return false;
             if (string.IsNullOrWhiteSpace(tc.ExpectedOutput)) return false;
         }
+
+        // Validate hints: at least one hint required for unlock flow
+        if (dto.Hints == null || dto.Hints.Count == 0) return false;
 
         return true;
     }

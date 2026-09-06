@@ -14,4 +14,8 @@ public static class SideTaskErrors
     public static readonly Error NoTemplateForConcept  = new("SideTask.NoTemplateForConcept",  "No reference scenario template found for the requested concept.");
     public static readonly Error AiCallFailed          = new("SideTask.AiCallFailed",          "External AI service call failed.");
     public static readonly Error AllTasksInvalid       = new("SideTask.AllTasksInvalid",       "All AI-generated tasks failed validation after max retries.");
+
+    // ── Hint errors ──────────────────────────────────────────────────────────
+    public static readonly Error HintNotFound        = new("SideTask.HintNotFound",        "Hint not found for this task and level.");
+    public static readonly Error HintAlreadyUnlocked = new("SideTask.HintAlreadyUnlocked", "This hint is already unlocked.");
 }

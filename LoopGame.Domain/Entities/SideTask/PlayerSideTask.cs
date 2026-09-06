@@ -18,6 +18,10 @@ public class PlayerSideTask
     public string         FilledSlots          { get; set; } = "{}";
 
     public decimal        EgpReward            { get; set; }
+
+    /// <summary>AI-assigned difficulty score (lower = easier). Used to order queued tasks.</summary>
+    public int            Difficulty           { get; set; } = 1;
+
     public SideTaskStatus Status               { get; set; } = SideTaskStatus.Active;
     public DateTime       AssignedAt           { get; set; } = DateTime.UtcNow;
     public DateTime?      CompletedAt          { get; set; }

@@ -20,7 +20,7 @@ public class PlayerSideTaskConfiguration : IEntityTypeConfiguration<PlayerSideTa
                    v => Enum.Parse<SideTaskStatus>(v, true));
 
         builder.HasCheckConstraint("CHK_PlayerSideTask_Status",
-            "\"Status\" IN ('active', 'submitted', 'abandoned', 'expired')");
+            "\"Status\" IN ('active', 'queued', 'submitted', 'abandoned', 'expired')");
 
         // PostgreSQL native jsonb column
         builder.Property(t => t.FilledSlots)
@@ -29,6 +29,9 @@ public class PlayerSideTaskConfiguration : IEntityTypeConfiguration<PlayerSideTa
 
         builder.Property(t => t.EgpReward)
                .HasPrecision(8, 2);
+
+        builder.Property(t => t.Difficulty)
+               .HasDefaultValue(1);
 
         builder.Property(t => t.AssignedAt)
                .HasColumnType("timestamp with time zone")

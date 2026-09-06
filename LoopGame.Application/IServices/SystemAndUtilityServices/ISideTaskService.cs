@@ -23,4 +23,20 @@ public interface ISideTaskService
     /// Called internally after a gate is cleared (or manually by the player's first task).
     /// </summary>
     Task<Result> AssignNewTaskAsync(int playerId, CancellationToken ct = default);
+
+    // ── Hints ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all pre-generated hints for the given active task.
+    /// HintText is null for hints that are still locked (privacy guard).
+    /// </summary>
+    Task<Result<List<SideTaskHintDto>>> GetHintsAsync(int playerId, int sideTaskId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deducts EgpCost from the player's balance and marks the hint as unlocked,
+    /// returning the revealed HintText and the player's new balance.
+    /// Fails if: task not found / not active / hint already unlocked /
+    ///           hint level not found / insufficient balance.
+    /// </summary>
+    Task<Result<UnlockHintResultDto>> UnlockHintAsync(int playerId, UnlockHintRequestDto dto, CancellationToken ct = default);
 }
