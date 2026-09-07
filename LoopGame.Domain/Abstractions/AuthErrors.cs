@@ -43,5 +43,7 @@ namespace LoopGame.Domain.Abstractions
 
         public static Error RefreshTokenRevoked()
             => new("Auth.RefreshTokenRevoked", "Refresh token has been revoked.");
+        public static Error UserHasNoRole()
+            => new("Auth.UserHasNoRole", "User has no role assigned.");
     }
 }
