@@ -3,6 +3,7 @@ using System;
 using LoopGame.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LoopGame.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260907052130_UpdateLocalDataBase")]
+    partial class UpdateLocalDataBase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -965,6 +968,10 @@ namespace LoopGame.Infrastructure.Migrations
                         .HasColumnType("varchar(30)")
                         .HasDefaultValue("Intern");
 
+                    b.Property<string>("StudentIdHash")
+                        .IsRequired()
+                        .HasColumnType("character(64)");
+
                     b.Property<int>("TotalPlayTimeSec")
                         .HasColumnType("integer");
 
@@ -975,6 +982,9 @@ namespace LoopGame.Infrastructure.Migrations
                     b.HasIndex("PlayerId")
                         .IsUnique()
                         .HasDatabaseName("IX_Player_User");
+
+                    b.HasIndex("StudentIdHash")
+                        .IsUnique();
 
                     b.ToTable("Player", "public");
                 });
@@ -1439,6 +1449,9 @@ namespace LoopGame.Infrastructure.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("integer");
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");

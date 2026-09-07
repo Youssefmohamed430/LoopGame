@@ -7,12 +7,6 @@ public class PlayerConfiguration : IEntityTypeConfiguration<Player>
         builder.ToTable("Player");
         builder.HasKey(p => p.PlayerId);
 
-        builder.Property(p => p.StudentIdHash)
-               .HasColumnType("character(64)")
-               .IsRequired();
-
-        builder.HasIndex(p => p.StudentIdHash).IsUnique();
-
         // PlayerRank enum → string (with space for ExperiencedJunior)
         builder.Property(p => p.Rank)
                .HasColumnType("varchar(30)")

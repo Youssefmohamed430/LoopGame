@@ -9,7 +9,6 @@ public class ApplicationUser : IdentityUser<int>
     public bool       IsActive    { get; set; } = true;
     public DateTime   CreatedAt   { get; set; } = DateTime.UtcNow;
     public DateTime?  DeletedAt   { get; set; }
-    public Roles Role { get; set; }
 
     // Navigation
     public Player?                   Player        { get; set; }

@@ -1,5 +1,6 @@
 ﻿using LoopGame.Application.Dtos.AuthServiceDtos;
 using LoopGame.Application.IServices.SystemAndUtilityServices;
+using LoopGame.Domain.Enums.AuthModule;
 using LoopGame.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -107,7 +108,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             {
                 UserId = storedToken.UserId,
                 Email = user.Email,
-                Role = user.Role.ToString(),
+                Role = Roles.Player.ToString(),
             };
 
             var accessTokenResult = await GenerateAccessToken(tokenUserDto);
@@ -122,7 +123,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 UserId= storedToken.UserId,
                 Email= user.Email,
                 FullName= user.DisplayName,
-                Role= user.Role
+                Role= Roles.Player
             });
         }
 

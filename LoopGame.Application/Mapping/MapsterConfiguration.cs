@@ -36,13 +36,16 @@ public class MapsterConfiguration : IRegister
 
         config.NewConfig<RegisterDto, ApplicationUser>()
             .Map(dest => dest.Email, src => src.Email)
-            .Map(dest => dest.DisplayName, src => src.FullName);
+            .Map(dest => dest.UserName, src => src.UserName)
+            .Map(dest => dest.DisplayName, src => src.Name);
 
         config.NewConfig<ApplicationUser, UserToReturnDto>()
             .Map(dest => dest.FullName, src => src.DisplayName)
             .Map(dest => dest.UserId, src => src.Id);
 
-        config.NewConfig<RegisterDto, Player>();
+        config.NewConfig<RegisterDto, Player>()
+            .Map(dest => dest.PlayerName, src => src.Name);
+
         config.NewConfig<SheetFile, SheetFileDto>()
             .Map(dest => dest.Status, src => src.Status.ToString());
 

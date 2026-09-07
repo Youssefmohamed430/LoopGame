@@ -1,23 +1,3 @@
-using Amazon.S3;
-using Hangfire;
-using Hangfire.PostgreSql;
-using LoopGame.Application.BackgroundJobs;
-using LoopGame.Application.IServices.EconomyAndProgressionServices;
-using LoopGame.Application.Options;
-using LoopGame.Application.Services.EconomyAndProgressionServices;
-using LoopGame.Application.Services.Events;
-using LoopGame.Application.Services.LearningAndContentServices;
-using LoopGame.Application.Services.SystemAndUtilityServices;
-using LoopGame.Application.Services.SystemAndUtilityServices.SideTaskModule;
-using LoopGame.Application.Utilities;
-using LoopGame.Infrastructure.Identity;
-using MapsterMapper;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-using System;
-using System.Reflection;
-
 namespace LoopGame.Application;
 
 /// <summary>
@@ -78,6 +58,11 @@ public static class DependencyInjection
             services.Configure<SupabaseS3Settings>(configuration.GetSection("SupabaseS3Settings"));
             services.Configure<AiServiceSettings>(configuration.GetSection("AiServiceSettings"));
         }
+
+        // ── Auth Layer ────────────────────────────────────────────────────────
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<IEmailService, EmailService>();
 
         services.AddScoped<ISideTaskService, SideTaskService>();
         services.AddScoped<IAdminService, AdminService>();

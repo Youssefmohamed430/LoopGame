@@ -53,7 +53,6 @@ public class AssessmentServiceTests : IDisposable
         var player = new Player
         {
             PlayerId = PlayerId,
-            StudentIdHash = "hash123",
             CurrentShiftId = ShiftId
         };
         var shift = new Shift
@@ -217,7 +216,6 @@ public class AssessmentServiceTests : IDisposable
         var player = new Player
         {
             PlayerId = PlayerId,
-            StudentIdHash = "hash123",
             CurrentShiftId = ShiftId,
             CurrentShift = shift,
             ShiftProgresses = [shiftProgress]
@@ -297,7 +295,6 @@ public class AssessmentServiceTests : IDisposable
         var player = new Player
         {
             PlayerId = PlayerId,
-            StudentIdHash = "hash123",
             CurrentShiftId = ShiftId,
             CurrentShift = shift,
             ShiftProgresses = [

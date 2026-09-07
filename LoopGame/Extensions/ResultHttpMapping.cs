@@ -76,6 +76,22 @@ public static class ResultHttpMapping
 
         "Forbidden.Access"                                          => 403,
 
+        // ── Auth errors → 401 / 404 / 400 ──────────────────────────────────
+        "Auth.InvalidCredentials" or
+        "Auth.InvalidRefreshToken" or
+        "Auth.ExpiredRefreshToken" or
+        "Auth.RefreshTokenAlreadyUsed" or
+        "Auth.RefreshTokenRevoked"                                  => 401,
+
+        "Auth.UserNotFound"                                         => 404,
+
+        "Auth.RegistrationFailed" or
+        "Auth.TokenGenerationFailed" or
+        "Auth.InvalidOtp" or
+        "Auth.OtpUsed" or
+        "Auth.OtpExpired" or
+        "Auth.ResetFailed"                                          => 400,
+
         _ => 400 // validation errors, unknown
     };
 }

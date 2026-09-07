@@ -16,30 +16,27 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
         private readonly ILogger<AuthService> _logger;
-        private readonly IMapper _mapper;
 
         public AuthService(
             UserManager<ApplicationUser> userManager,
             IUnitOfWork unitOfWork,
             ITokenService tokenService,
             IEmailService emailService,
-            ILogger<AuthService> logger,
-            IMapper mapper)
+            ILogger<AuthService> logger)
         {
             _userManager = userManager;
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
             _emailService = emailService;
             _logger = logger;
-            _mapper = mapper;
         }
 
         public async Task<Result<UserToReturnDto>> LoginAsync(LoginDto request)
         {
             if (request == null)
                 return AuthErrors.InvalidCredentials();
-                
-            var user = await _userManager.FindByEmailAsync(request.Email);
+
+            var user = await _userManager.FindByNameAsync(request.UserName);
             if (user == null)
                 return AuthErrors.InvalidCredentials();
 
@@ -47,14 +44,15 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             if (!isPasswordValid)
                 return AuthErrors.InvalidCredentials();
 
-            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = user.Role.ToString() };
+            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = Roles.Player.ToString() };
             var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
             var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
 
             if (accessTokenResult.IsFailure || refreshTokenResult.IsFailure)
                 return Result.Failure<UserToReturnDto>(AuthErrors.TokenGenerationFailed());
 
-            var userToReturn = _mapper.Map<UserToReturnDto>(user);
+            //var userToReturn = _mapper.Map<UserToReturnDto>(user);
+            var userToReturn = user.Adapt<UserToReturnDto>(); 
             userToReturn.AccessToken = accessTokenResult.Value;
             userToReturn.RefreshToken = refreshTokenResult.Value.TokenHash; // Assuming TokenHash is returned as the string or hash here
             userToReturn.AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
@@ -66,9 +64,8 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
         {
             if (request == null)
                 return AuthErrors.InvalidCredentials();
-                
-            var user = _mapper.Map<ApplicationUser>(request);
-            user.Role = Roles.Player;
+
+            var user = request.Adapt<ApplicationUser>();
             user.EmailConfirmed = true;
 
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -76,23 +73,25 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             {
                 _logger.LogWarning("Registration failed for {Email}: {Errors}",
                     request.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
-                return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed());
+                return Result.Failure<UserToReturnDto>
+                    (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
             }
 
             var profile = new Player
             {
                 PlayerId = user.Id,
-                PlayerName = request.FullName,
+                PlayerName = request.UserName,
             };
+            await _userManager.AddToRoleAsync(user, "Player");
 
             await _unitOfWork.GetRepository<Player>().AddAsync(profile);
             await _unitOfWork.SaveAsync();
 
-            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = user.Role.ToString() };
+            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = Roles.Player.ToString() };
             var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
             var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
 
-            var userToReturn = _mapper.Map<UserToReturnDto>(user);
+            var userToReturn = user.Adapt<UserToReturnDto>();
             
             if (accessTokenResult.IsSuccess && refreshTokenResult.IsSuccess)
             {

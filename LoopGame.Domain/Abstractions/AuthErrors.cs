@@ -14,8 +14,8 @@ namespace LoopGame.Domain.Abstractions
         public static Error TokenGenerationFailed()
             => new("Auth.TokenGenerationFailed", "Failed to generate tokens.");
         
-        public static Error RegistrationFailed()
-            => new("Auth.RegistrationFailed", "Registration failed.");
+        public static Error RegistrationFailed(string msg)
+            => new("Auth.RegistrationFailed", $"Registration failed {msg}.");
 
         public static Error UserNotFound()
             => new("Auth.UserNotFound", "User not found.");
@@ -33,23 +33,15 @@ namespace LoopGame.Domain.Abstractions
             => new("Auth.ResetFailed", "Failed to reset password.");
 
         public static Error InvalidRefreshToken()
-            => new(
-                "Invalid refresh token.",
-                "AuthErrorCodes.INVALID_REFRESH_TOKEN");
+            => new("Auth.InvalidRefreshToken", "Invalid refresh token.");
 
         public static Error ExpiredRefreshToken()
-            => new(
-                "Refresh token has expired.",
-                "AuthErrorCodes.EXPIRED_REFRESH_TOKEN");
+            => new("Auth.ExpiredRefreshToken", "Refresh token has expired.");
 
         public static Error RefreshTokenAlreadyUsed()
-            => new(
-                "Refresh token has already been used.",
-                "AuthErrorCodes.REFRESH_TOKEN_ALREADY_USED");
+            => new("Auth.RefreshTokenAlreadyUsed", "Refresh token has already been used.");
 
         public static Error RefreshTokenRevoked()
-            => new(
-                "Refresh token has been revoked.",
-                "AuthErrorCodes.REVOKED_REFRESH_TOKEN");
+            => new("Auth.RefreshTokenRevoked", "Refresh token has been revoked.");
     }
 }

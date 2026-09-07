@@ -4,7 +4,6 @@ public class Player
 {
     public int PlayerId { get; set; }
     public string PlayerName { get; set; }
-    public string StudentIdHash { get; set; } = string.Empty; // SHA-256 CHAR(64)
     public PlayerRank Rank { get; set; } = PlayerRank.Intern;
     public int? CurrentShiftId { get; set; }
     public int TotalPlayTimeSec { get; set; } = 0;
