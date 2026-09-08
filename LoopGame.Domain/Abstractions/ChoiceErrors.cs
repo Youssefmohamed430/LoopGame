@@ -13,4 +13,5 @@ public static class ChoiceErrors
     public static readonly Error DuplicateChoiceIndex = new("Choice.DuplicateChoiceIndex", "Duplicate choice index found for the story beat.");
     public static readonly Error InvalidChoiceText    = new("Choice.InvalidChoiceText", "Choice text cannot be empty.");
     public static readonly Error InvalidConsequence   = new("Choice.InvalidConsequence", "The specified consequence does not exist.");
+    public static readonly Error NotAllowedToAddChoice = new("Choice.NotAllowedToAddChoice", "Beat not allowed to add Choices");
 }

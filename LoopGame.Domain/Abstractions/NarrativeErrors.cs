@@ -51,6 +51,10 @@ public static class NarrativeErrors
         new("Narrative.SequenceOrderRequired",
             "Narrative beats must have a sequence order. Consequence beats must not.");
 
+    public static readonly Error SequenceOrderNotRequiredForConsequenceBeat =
+        new("Narrative.SequenceOrderNotRequiredForConsequenceBeat",
+            "Consequence beats must not have a sequence order.");
+
     public static readonly Error SequenceOrderConflict =
         new("Narrative.SequenceOrderConflict",
             "Another narrative beat already occupies this sequence order in the target shift.");

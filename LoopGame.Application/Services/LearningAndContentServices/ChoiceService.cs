@@ -103,6 +103,9 @@ public class ChoiceService
             if (beat == null)
                 return (false,Result.Failure<List<ChoiceDto>>(ChoiceErrors.BeatNotFound));
 
+            if (!beat.HasChoices)
+                return (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.NotAllowedToAddChoice));
+
             int existingCount = beat.Choices?.Count ?? 0;
             int newCount = choices.Count(c => c.BeatId == beatId);
 
@@ -242,6 +245,7 @@ public class ChoiceService
         choice.ChoiceText = choicedto.ChoiceText ?? choice.ChoiceText;
         choice.ConsequenceId = choicedto.ConsequenceId ?? choice.ConsequenceId;
         choice.ImmediateFeedback = choicedto.ImmediateFeedback ?? choice.ImmediateFeedback;
+        choice.Tier = choicedto.tier ?? choice.Tier;
 
         await unitOfWork.GetRepository<Choice>()
             .UpdateAsync(choice);

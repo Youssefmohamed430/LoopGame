@@ -27,7 +27,17 @@ builder.Services.AddHangfire(cfg => cfg
 
 builder.Services.AddHangfireServer();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Serialize enums as names ("VideoCall", "Ideal") instead of numeric values.
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
+
+// Model validation + domain Result failures share ApiErrorResponse shape.
+builder.Services.AddUnifiedApiErrors();
+
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

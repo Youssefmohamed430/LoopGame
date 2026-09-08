@@ -1,8 +1,4 @@
-using LoopGame.Application.Dtos.NarrativeDtos;
-using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Extensions;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 
 namespace LoopGame.Controllers;
 
@@ -20,7 +16,7 @@ namespace LoopGame.Controllers;
 ///   /api/admin/beats    — StoryBeat management
 /// </summary>
 [ApiController]
-[Authorize(Roles = "Admin")]
+//[Authorize(Roles = "Admin")]
 [Route("api/admin")]
 public class NarrativeAdminController(
     INarrativeService _narrative,

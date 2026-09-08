@@ -9,6 +9,7 @@ namespace LoopGame.Application.Dtos
     public class UpdateChoiceDto
     {
         public string? ChoiceText { get; set; }
+        public ChoiceTier? tier { get; set; }
         public int? ConsequenceId { get; set; }
         public string? ImmediateFeedback { get; set; }
     }

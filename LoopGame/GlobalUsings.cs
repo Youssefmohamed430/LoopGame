@@ -23,6 +23,7 @@ global using LoopGame.Application;
 global using LoopGame.Application.Dtos;
 global using LoopGame.Application.Dtos.NarrativeDtos;
 global using LoopGame.Application.IServices.LearningAndContentServices;
+global using LoopGame.Extensions;
 global using LoopGame.Infrastructure;
 global using LoopGame.Infrastructure.Identity;
 global using LoopGame.Infrastructure.Persistence;

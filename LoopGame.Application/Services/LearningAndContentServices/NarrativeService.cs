@@ -245,7 +245,7 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         else // Consequence
         {
             if (dto.SequenceOrder.HasValue)
-                return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderRequiredForNarrativeBeat);
+                return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderNotRequiredForConsequenceBeat);
 
             if (string.IsNullOrWhiteSpace(dto.InjectPosition) ||
                 (dto.InjectPosition != "start" && dto.InjectPosition != "end"))

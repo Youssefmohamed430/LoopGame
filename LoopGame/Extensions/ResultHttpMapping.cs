@@ -1,3 +1,5 @@
+using LoopGame.Models;
+
 namespace LoopGame.Extensions;
 
 /// <summary>
@@ -7,13 +9,13 @@ namespace LoopGame.Extensions;
 public static class ResultHttpMapping
 {
     public static ActionResult ToActionResult(this Error error) =>
-        new ObjectResult(new { error.Code, error.Description })
+        new ObjectResult(ApiErrorResponse.FromDomain(error))
         {
             StatusCode = StatusCodeFor(error.Code)
         };
 
     public static ActionResult<T> ToActionResult<T>(this Error error) =>
-        new ObjectResult(new { error.Code, error.Description })
+        new ObjectResult(ApiErrorResponse.FromDomain(error))
         {
             StatusCode = StatusCodeFor(error.Code)
         };
