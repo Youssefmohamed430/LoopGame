@@ -1,8 +1,9 @@
-using System.Text.Json;
 using LoopGame.Application.IServices.EconomyAndProgressionServices;
 using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Domain.Constants;
 using LoopGame.Domain.Entities.Player;
+using System.Text.Json;
+using UglyToad.PdfPig.Fonts.Standard14Fonts;
 
 namespace LoopGame.Application.Services.LearningAndContentServices;
 
@@ -146,15 +147,42 @@ public class PracticeService(
     // Admin / Task management operations
     // ══════════════════════════════════════════════════════════════════════════
 
-    public Result<PracticeDto> AddPracticeTask(PracticeDto practice)
+    public Result<PracticeDto> AddPracticeTask(CreatePracticeDto practice)
     {
+        var shift = _uow.GetRepository<Shift>()
+            .Find(s => s.ShiftId == practice.ShiftId);
+
+        if (shift == null)
+            return Result.Failure<PracticeDto>(PracticeErrors.ShiftNotFound);
+
+        if (practice.TaskOrder is <= 0 or > byte.MaxValue)
+            return Result.Failure<PracticeDto>(PracticeErrors.InvalidTaskOrder);
+
+        if (string.IsNullOrWhiteSpace(practice.Title))
+            return Result.Failure<PracticeDto>(PracticeErrors.InvalidTitle);
+
+        if (string.IsNullOrWhiteSpace(practice.Description))
+            return Result.Failure<PracticeDto>(PracticeErrors.InvalidDescription);
+
+        if (string.IsNullOrWhiteSpace(practice.ConceptTag))
+            return Result.Failure<PracticeDto>(PracticeErrors.InvalidDescription);
+
+        if(practice.EgpReward <= 0)
+            return Result.Failure<PracticeDto>(PracticeErrors.NegativeEgpReward);
+
+        if (practice.MaxAttempts is < 0 or > short.MaxValue)
+            return Result.Failure<PracticeDto>(PracticeErrors.MaxAttemptsInvalid);
+
         var task = practice.Adapt<PracticeTask>();
         _uow.GetRepository<PracticeTask>().AddAsync(task);
         _uow.SaveAsync().GetAwaiter().GetResult();
-        return Result.Success(practice);
+
+        var dto = task.Adapt<PracticeDto>();
+        dto.ShiftNumber = shift.ShiftNumber;
+        return Result.Success(dto);
     }
 
-    public Result<PracticeDto> UpdatePracticeTask(int TaskId, PracticeDto practice)
+    public Result<PracticeDto> UpdatePracticeTask(int TaskId, UpdatePracticeDto practice)
     {
         var task = _uow.GetRepository<PracticeTask>()
             .FindWithTracking(pt => pt.TaskId == TaskId, new[] { "TestCases", "Shift", "Attempts" });
@@ -165,7 +193,7 @@ public class PracticeService(
         ApplyTaskUpdates(practice, task);
         _uow.GetRepository<PracticeTask>().UpdateAsync(task);
         _uow.SaveAsync().GetAwaiter().GetResult();
-        return Result.Success(practice);
+        return Result.Success(task.Adapt<PracticeDto>());
     }
 
     public Result<TestCaseDto> UpdateTestCasesAtPracticeTask(int TestId, TestCaseDto testCaseDto)
@@ -201,7 +229,7 @@ public class PracticeService(
     // Private helpers
     // ══════════════════════════════════════════════════════════════════════════
 
-    private static void ApplyTaskUpdates(PracticeDto practice, PracticeTask task)
+    private static void ApplyTaskUpdates(UpdatePracticeDto practice, PracticeTask task)
     {
         task.MaxAttempts = practice.MaxAttempts ?? task.MaxAttempts;
         task.StarterCode = practice.StarterCode ?? task.StarterCode;

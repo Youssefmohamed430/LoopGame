@@ -18,8 +18,15 @@ public class MapsterConfiguration : IRegister
             .Map(dest => dest.ShiftNumber, src => src.Shift != null ? src.Shift.ShiftNumber : 0)
             .Map(dest => dest.TestCases, src => src.TestCases);
 
-        config.NewConfig<PracticeDto, PracticeTask>()
+        config.NewConfig<CreatePracticeDto, PracticeTask>()
+            .Ignore(dest => dest.TaskId)
+            .Ignore(dest => dest.CreatedAt)
+            .Ignore(dest => dest.Shift)
+            .Ignore(dest => dest.Attempts)
             .Map(dest => dest.TestCases, src => src.TestCases);
+
+        config.NewConfig<UpdatePracticeDto, PracticeTask>()
+            .IgnoreNullValues(true);
 
         config.NewConfig<TestCase, TestCaseDto>();
         config.NewConfig<TestCaseDto, TestCase>();

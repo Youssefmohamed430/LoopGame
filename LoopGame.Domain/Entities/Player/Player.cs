@@ -5,7 +5,7 @@ public class Player
     public int PlayerId { get; set; }
     public string PlayerName { get; set; }
     public PlayerRank Rank { get; set; } = PlayerRank.Intern;
-    public int? CurrentShiftId { get; set; }
+    public int? CurrentShiftId { get; set; } = 1;
     public int TotalPlayTimeSec { get; set; } = 0;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; set; }
