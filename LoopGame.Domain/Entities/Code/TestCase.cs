@@ -18,5 +18,4 @@ public class TestCase
     // Navigation
     public PracticeTask?       Task     { get; set; }
     public PlayerSideTask?     SideTask { get; set; }
-    public SideTaskTemplate?   Template { get; set; }
 }

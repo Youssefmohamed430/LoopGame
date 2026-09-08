@@ -14,6 +14,17 @@ namespace LoopGame.Controllers;
 [Route("api/admin/practice")]
 public class PracticeAdminController(IPracticeService _practiceService) : ControllerBase
 {
+    [HttpGet("tasks")]
+    /* Must be improve Performance to this method. */
+    public async Task<ActionResult<PracticeDto>> GetTask(int playerId, int taskId)
+    {
+        var result = await _practiceService.GetTasks();
+        if (result.IsFailure)
+            return result.Error.ToActionResult();
+        return Ok(result.Value);
+    }
+
+
     /// <summary>
     /// Creates a new practice task.
     /// </summary>

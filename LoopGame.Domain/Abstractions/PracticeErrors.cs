@@ -44,5 +44,21 @@ public static class PracticeErrors
     public static readonly Error MaxAttemptsInvalid =
         new("Task.MaxAttemptsInvalid", "MaxAttempts must be between 0 and 32767.");
 
+    public static readonly Error TestCasesEmpty =
+        new("TestCases.Empty", "TestCases cannot be empty.");
 
+    public static readonly Error InvalidTestCaseTaskId =
+        new("TestCase.InvalidTaskId", "TaskId is required and must be a positive number.");
+
+    public static readonly Error InvalidExpectedOutput =
+        new("TestCase.InvalidExpectedOutput", "ExpectedOutput is required and cannot be empty.");
+
+    public static readonly Error InvalidTestInput =
+        new("TestCase.InvalidTestInput", "TestInput is required.");
+
+    public static readonly Error TestCaseNotFound =
+        new("NotFound.TestCase", "TestCase was not found.");
+
+    public static readonly Error TestCaseDuplicate =
+        new("TestCase.TestCaseDuplicate", "TestCase Cannot be duplicated at [ PracticeTask and SideTask ]");
 }

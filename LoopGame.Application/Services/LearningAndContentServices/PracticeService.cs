@@ -33,6 +33,17 @@ public class PracticeService(
     // Player-facing: get task (visible test cases only)
     // ══════════════════════════════════════════════════════════════════════════
 
+    public async Task<Result<List<PracticeDto>>> GetTasks()
+    {
+        var tasks = _uow.GetRepository<PracticeTask>()
+            .FindAll<PracticeDto>(pt => true, new[] { "TestCases", "Shift" })
+            .OrderBy(t => t.ShiftId)
+            .ThenBy(t => t.TaskOrder)
+            .ToList();
+
+        return Result.Success(tasks);
+    }
+
     public async Task<Result<PracticeDto>> GetTaskAsync(int TaskId, int PlayerId)
     {
         var task = _uow.GetRepository<PracticeTask>()
@@ -202,7 +213,7 @@ public class PracticeService(
             .FindWithTracking(tc => tc.TestCaseId == TestId);
 
         if (testCase is null)
-            return Result.Failure<TestCaseDto>(new Error("NotFound.TestCase", "TestCase was not found."));
+            return Result.Failure<TestCaseDto>(PracticeErrors.TestCaseNotFound);
 
         testCase.TestInput      = testCaseDto.TestInput      ?? testCase.TestInput;
         testCase.Description    = testCaseDto.Description    ?? testCase.Description;
@@ -216,11 +227,39 @@ public class PracticeService(
 
     public Result<List<TestCaseDto>> AddTestCasesAtPracticeTask(List<TestCaseDto> testCaseDtos)
     {
+        if (testCaseDtos is null || testCaseDtos.Count == 0)
+            return Result.Failure<List<TestCaseDto>>(PracticeErrors.TestCasesEmpty);
+
+        var validatedTaskIds = new HashSet<int>();
+
         foreach (var testCase in testCaseDtos)
         {
+            if (testCase.TaskId is null or <= 0)
+                return Result.Failure<List<TestCaseDto>>(PracticeErrors.InvalidTestCaseTaskId);
+
+            if (testCase.TestInput is null)
+                return Result.Failure<List<TestCaseDto>>(PracticeErrors.InvalidTestInput);
+
+            if (string.IsNullOrWhiteSpace(testCase.ExpectedOutput))
+                return Result.Failure<List<TestCaseDto>>(PracticeErrors.InvalidExpectedOutput);
+
+            if(testCase.TaskId is not null && testCase.SideTaskId is not null)
+                return Result.Failure<List<TestCaseDto>>(PracticeErrors.TestCaseDuplicate);
+
+            if (validatedTaskIds.Add(testCase.TaskId.Value))
+            {
+                var task = _uow.GetRepository<PracticeTask>()
+                    .Find(t => t.TaskId == testCase.TaskId.Value);
+
+                if (task is null)
+                    return Result.Failure<List<TestCaseDto>>(PracticeErrors.TaskNotFound);
+            }
+
             var entity = testCase.Adapt<TestCase>();
+            entity.SideTaskId = null;
             _uow.GetRepository<TestCase>().AddAsync(entity);
         }
+
         _uow.SaveAsync().GetAwaiter().GetResult();
         return Result.Success(testCaseDtos);
     }
@@ -240,4 +279,5 @@ public class PracticeService(
         task.Title       = !string.IsNullOrWhiteSpace(practice.Title) ? practice.Title : task.Title;
         task.EgpReward   = practice.EgpReward ?? task.EgpReward;
     }
+
 }
