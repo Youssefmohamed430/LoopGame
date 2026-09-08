@@ -2,11 +2,7 @@ namespace LoopGame.Tests.Entities;
 
 public class PlayerEconomyTests
 {
-    private static PlayerEconomy NewEconomy() => new()
-    {
-        PlayerId = 1,
-        SalaryTier = 1,
-    };
+    private static PlayerEconomy NewEconomy() => new(1);
 
     private static PlayerEconomy SeededEconomy(decimal balance)
     {
@@ -128,5 +124,55 @@ public class PlayerEconomyTests
 
         Assert.Equal(100m, first.BalanceAfter); // history not rewritten by later ops
         Assert.Equal(150m, second.BalanceAfter);
+    }
+
+    [Theory]
+    [InlineData(TransactionType.Purchase)]
+    [InlineData(TransactionType.Penalty)]
+    public void Credit_WithInvalidDebitType_ThrowsArgumentException(TransactionType type)
+    {
+        var economy = NewEconomy();
+        Assert.Throws<ArgumentException>(() => economy.Credit(100m, type, "Illegal"));
+    }
+
+    [Theory]
+    [InlineData(TransactionType.Salary)]
+    [InlineData(TransactionType.Bonus)]
+    [InlineData(TransactionType.SideTask)]
+    [InlineData(TransactionType.BugBounty)]
+    public void TryDebit_WithInvalidCreditType_ReturnsInvalidTransactionType(TransactionType type)
+    {
+        var economy = SeededEconomy(200m);
+        var result = economy.TryDebit(50m, type, "Illegal");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.InvalidTransactionType, result.Error);
+    }
+
+    [Fact]
+    public void Credit_WithAmountExceedingMax_ThrowsArgumentOutOfRangeException()
+    {
+        var economy = NewEconomy();
+        Assert.Throws<ArgumentOutOfRangeException>(() => economy.Credit(100_000_000m, TransactionType.Bonus, "Too big"));
+    }
+
+    [Fact]
+    public void TryDebit_WithAmountExceedingMax_ReturnsAmountExceedsMaximum()
+    {
+        var economy = SeededEconomy(500m);
+        var result = economy.TryDebit(100_000_000m, TransactionType.Purchase, "Too big");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.AmountExceedsMaximum, result.Error);
+    }
+
+    [Fact]
+    public void Credit_RoundsFractionalPiasters()
+    {
+        var economy = NewEconomy();
+        var ledger = economy.Credit(10.005m, TransactionType.Bonus, "Fractional");
+
+        Assert.Equal(10.01m, economy.Balance);
+        Assert.Equal(10.01m, ledger.Amount);
     }
 }

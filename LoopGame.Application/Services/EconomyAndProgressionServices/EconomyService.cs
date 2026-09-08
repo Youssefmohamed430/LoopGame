@@ -68,14 +68,27 @@ public class EconomyService(
         if (delta == 0m)
             return Result.Failure<decimal>(EconomyErrors.InvalidAmount);
 
-        await _uow.BeginTransactionAsync(ct);
+        if (Math.Abs(delta) > PlayerEconomy.MaxTransactionAmount)
+            return Result.Failure<decimal>(EconomyErrors.AmountExceedsMaximum);
+
+        if (delta > 0m && type is TransactionType.Purchase or TransactionType.Penalty)
+            return Result.Failure<decimal>(EconomyErrors.InvalidTransactionType);
+
+        if (delta < 0m && type is not (TransactionType.Purchase or TransactionType.Penalty))
+            return Result.Failure<decimal>(EconomyErrors.InvalidTransactionType);
+
+        var ownsTransaction = !_economyRepo.HasActiveTransaction;
+        if (ownsTransaction)
+            await _uow.BeginTransactionAsync(ct);
+
         try
         {
             // Lock the economy row FIRST.
             var economy = await _economyRepo.GetForUpdateAsync(playerId, ct);
             if (economy is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<decimal>(EconomyErrors.PlayerEconomyNotFound);
             }
 
@@ -93,7 +106,8 @@ public class EconomyService(
                 var debit = economy.TryDebit(-delta, type, description, referenceId);
                 if (debit.IsFailure)
                 {
-                    await _uow.RollbackAsync(ct);
+                    if (ownsTransaction)
+                        await _uow.RollbackAsync(ct);
                     return Result.Failure<decimal>(debit.Error);
                 }
                 ledger = debit.Value;
@@ -101,7 +115,8 @@ public class EconomyService(
 
             await _uow.GetRepository<Transaction>().AddAsync(ledger);
             await _uow.SaveAsync(ct);
-            await _uow.CommitAsync(ct);
+            if (ownsTransaction)
+                await _uow.CommitAsync(ct);
 
             return economy.Balance;
         }
@@ -109,7 +124,8 @@ public class EconomyService(
         {
             // Cleanup must not be cancellable: a cancelled ct must not mask the
             // original exception or leave the transaction open.
-            await _uow.RollbackAsync(CancellationToken.None);
+            if (ownsTransaction)
+                await _uow.RollbackAsync(CancellationToken.None);
             throw;
         }
     }
@@ -120,13 +136,17 @@ public class EconomyService(
         // inside the transaction after the economy row is locked (review F-1),
         // serializing concurrent salary calls for the same player.
         // The filtered unique index UX_Transaction_SalaryPerShift is the DB backstop.
-        await _uow.BeginTransactionAsync(ct);
+        var ownsTransaction = !_economyRepo.HasActiveTransaction;
+        if (ownsTransaction)
+            await _uow.BeginTransactionAsync(ct);
+
         try
         {
             var economy = await _economyRepo.GetForUpdateAsync(playerId, ct);
             if (economy is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<decimal>(EconomyErrors.PlayerEconomyNotFound);
             }
 
@@ -141,7 +161,8 @@ public class EconomyService(
 
             if (alreadyPaid)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<decimal>(EconomyErrors.SalaryAlreadyPaid);
             }
 
@@ -153,7 +174,8 @@ public class EconomyService(
 
             if (rank is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<decimal>(EconomyErrors.PlayerNotFound);
             }
 
@@ -168,12 +190,20 @@ public class EconomyService(
             var baseSalary = SalaryPolicy.BaseSalary(rank.Value);
             var total = baseSalary + SalaryPolicy.ComputeShiftBonus(baseSalary, tierCounts);
 
+            // Synchronize SalaryTier (1-5) with player's actual rank
+            var expectedTier = (int)rank.Value + 1;
+            if (economy.SalaryTier != expectedTier && expectedTier is >= 1 and <= 5)
+            {
+                economy.SetSalaryTier(expectedTier);
+            }
+
             // (e) Credit + ledger + single save + commit. DB-only work: stays short.
             var ledger = economy.Credit(total, TransactionType.Salary, $"Shift {shiftId} salary", shiftId);
 
             await txRepo.AddAsync(ledger);
             await _uow.SaveAsync(ct);
-            await _uow.CommitAsync(ct);
+            if (ownsTransaction)
+                await _uow.CommitAsync(ct);
 
             return economy.Balance;
         }
@@ -181,7 +211,8 @@ public class EconomyService(
         {
             // Cleanup must not be cancellable: a cancelled ct must not mask the
             // original exception or leave the transaction open.
-            await _uow.RollbackAsync(CancellationToken.None);
+            if (ownsTransaction)
+                await _uow.RollbackAsync(CancellationToken.None);
             throw;
         }
     }
@@ -189,13 +220,17 @@ public class EconomyService(
     public async Task<Result> ResetEconomyAsync(int playerId, CancellationToken ct = default)
     {
         // ONE transaction: lock economy → Reset → wipe inventory & ledger rows.
-        await _uow.BeginTransactionAsync(ct);
+        var ownsTransaction = !_economyRepo.HasActiveTransaction;
+        if (ownsTransaction)
+            await _uow.BeginTransactionAsync(ct);
+
         try
         {
             var economy = await _economyRepo.GetForUpdateAsync(playerId, ct);
             if (economy is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure(EconomyErrors.PlayerEconomyNotFound);
             }
 
@@ -215,8 +250,16 @@ public class EconomyService(
             foreach (var row in ledgerRows)
                 txRepo.Delete(row);
 
+            var sahmRepo = _uow.GetRepository<SahmSubscription>();
+            var sahmRows = await sahmRepo
+                .FindAll(s => s.PlayerId == playerId)
+                .ToListAsync(ct);
+            foreach (var row in sahmRows)
+                sahmRepo.Delete(row);
+
             await _uow.SaveAsync(ct);
-            await _uow.CommitAsync(ct);
+            if (ownsTransaction)
+                await _uow.CommitAsync(ct);
 
             return Result.Success();
         }
@@ -224,9 +267,37 @@ public class EconomyService(
         {
             // Cleanup must not be cancellable: a cancelled ct must not mask the
             // original exception or leave the transaction open.
-            await _uow.RollbackAsync(CancellationToken.None);
+            if (ownsTransaction)
+                await _uow.RollbackAsync(CancellationToken.None);
             throw;
         }
+    }
+
+    public async Task<Result<BalanceDto>> InitializePlayerEconomyAsync(int playerId, CancellationToken ct = default)
+    {
+        var playerExists = await _uow.GetRepository<Player>()
+            .FindAll(p => p.PlayerId == playerId)
+            .AnyAsync(ct);
+
+        if (!playerExists)
+            return Result.Failure<BalanceDto>(EconomyErrors.PlayerNotFound);
+
+        var existing = await _uow.GetRepository<PlayerEconomy>()
+            .FindAll(e => e.PlayerId == playerId)
+            .AnyAsync(ct);
+
+        if (existing)
+            return Result.Failure<BalanceDto>(EconomyErrors.EconomyAlreadyExists);
+
+        var economy = new PlayerEconomy(playerId);
+        await _uow.GetRepository<PlayerEconomy>().AddAsync(economy);
+        await _uow.SaveAsync(ct);
+
+        return new BalanceDto(
+            economy.Balance,
+            economy.TotalEarned,
+            economy.TotalSpent,
+            SalaryTierName(economy.SalaryTier));
     }
 
     // SalaryTier is stored 1–5 (1 = Intern) while the PlayerRank enum is 0-based.

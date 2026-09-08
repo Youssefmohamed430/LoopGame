@@ -6,14 +6,14 @@ namespace LoopGame.Domain.Entities.Economy;
 /// </summary>
 public class Transaction
 {
-    public int             TransactionId   { get; set; }
-    public int             PlayerId        { get; set; }
-    public decimal         Amount          { get; set; }
-    public TransactionType TransactionType { get; set; }
-    public string          Description     { get; set; } = string.Empty;
-    public int?            ReferenceId     { get; set; }
-    public decimal         BalanceAfter    { get; set; }
-    public DateTime        CreatedAt       { get; set; } = DateTime.UtcNow;
+    public int             TransactionId   { get; init; }
+    public int             PlayerId        { get; init; }
+    public decimal         Amount          { get; init; }
+    public TransactionType TransactionType { get; init; }
+    public string          Description     { get; init; } = string.Empty;
+    public int?            ReferenceId     { get; init; }
+    public decimal         BalanceAfter    { get; init; }
+    public DateTime        CreatedAt       { get; init; } = DateTime.UtcNow;
 
     // Navigation
     public Player.Player Player { get; set; } = null!;

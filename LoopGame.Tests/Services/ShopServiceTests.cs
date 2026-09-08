@@ -50,6 +50,8 @@ public class ShopServiceTests : IDisposable
 
     private sealed class FakeEconomyRepository(AppDbContext db) : IPlayerEconomyRepository
     {
+        public bool HasActiveTransaction => false;
+
         public Task<PlayerEconomy?> GetForUpdateAsync(int playerId, CancellationToken ct = default)
             => db.PlayerEconomies.FirstOrDefaultAsync(p => p.PlayerId == playerId);
     }
@@ -78,7 +80,7 @@ public class ShopServiceTests : IDisposable
 
     private async Task SeedPlayerAsync(PlayerRank rank)
     {
-        _db.Players.Add(new Player { PlayerId = PlayerId, Rank = rank });
+        _db.Players.Add(new Player { PlayerId = PlayerId, Rank = rank, PlayerName = "TestPlayer" });
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
     }

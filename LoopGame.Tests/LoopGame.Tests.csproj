@@ -23,6 +23,7 @@
     <ProjectReference Include="..\LoopGame.Domain\LoopGame.Domain.csproj" />
     <ProjectReference Include="..\LoopGame.Infrastructure\LoopGame.Infrastructure.csproj" />
     <ProjectReference Include="..\CodeRunner\CodeRunner.csproj" />
+    <ProjectReference Include="..\LoopGame\LoopGame.API.csproj" />
   </ItemGroup>
 
 </Project>
