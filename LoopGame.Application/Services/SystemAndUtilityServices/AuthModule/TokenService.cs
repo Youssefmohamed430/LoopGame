@@ -19,7 +19,6 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
         private readonly JwtSettings _jwtSettings;
         private readonly IUnitOfWork _unitOfWork;
         private readonly UserManager<ApplicationUser> _userManager;
-
         public TokenService(IOptions<JwtSettings> jwtOptions, IUnitOfWork unitOfWork, UserManager<ApplicationUser> userManager)
         {
 
@@ -33,7 +32,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             {
                 new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new(ClaimTypes.Email, user.Email!),
-                new(ClaimTypes.Role, user.Role.ToString()),
+                new(ClaimTypes.Role, user.Role),
             };
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -50,6 +49,14 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
 
         public async Task<Result<GeneratedRefreshTokenDto>> GenerateRefreshTokenAsync(int userId)
         {
+            var tokenExist = await _unitOfWork.GetRepository<RefreshToken>()
+                .FindAsync(t => t.UserId == userId && t.ExpiresAt > DateTime.UtcNow);
+            if (tokenExist != null)
+            {
+                tokenExist.RevokedAt = DateTime.UtcNow;
+                await _unitOfWork.SaveAsync();
+            }
+
             var tokenBytes = new byte[64];
 
             using var rng = RandomNumberGenerator.Create();
@@ -103,12 +110,17 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
 
             if (newRefreshTokenResult.IsFailure)
                 return Result.Failure<UserToReturnDto>(newRefreshTokenResult.Error);
-
+            var role =( await _userManager.GetRolesAsync(user)).FirstOrDefault();
+            if (role is null)
+            {
+                return Result.Failure<UserToReturnDto>(
+                    AuthErrors.UserHasNoRole());
+            }
             var tokenUserDto = new TokenUserDto
             {
                 UserId = storedToken.UserId,
                 Email = user.Email,
-                Role = Roles.Player.ToString(),
+                Role = role,
             };
 
             var accessTokenResult = await GenerateAccessToken(tokenUserDto);
@@ -123,7 +135,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 UserId= storedToken.UserId,
                 Email= user.Email,
                 FullName= user.DisplayName,
-                Role= Roles.Player
+                Role= Enum.Parse<Roles>(role)
             });
         }
 
