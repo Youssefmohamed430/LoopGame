@@ -8,7 +8,7 @@ public class SideTaskTemplate
 {
     public int        TemplateId            { get; set; }
     public string     TemplateKey           { get; set; } = string.Empty;
-    public string     ConceptTag            { get; set; } = string.Empty;
+    public Concept    ConceptTag            { get; set; }
     public PlayerRank RankRequired          { get; set; } = PlayerRank.Intern;
     public string     TitleTemplate         { get; set; } = string.Empty;
     public string     DescriptionTemplate   { get; set; } = string.Empty;

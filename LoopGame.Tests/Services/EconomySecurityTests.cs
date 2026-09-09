@@ -110,7 +110,7 @@ public class EconomySecurityTests
 
         var result = await controller.RequestHint(
             playerId: 20,
-            new HintRequestDto(1, "Practice", ConceptTag: "Arrays"),
+            new HintRequestDto(1, "Practice", ConceptTag: Concept.Arrays),
             CancellationToken.None);
 
         Assert.IsType<ForbidResult>(result.Result);
@@ -202,7 +202,7 @@ public class EconomySecurityTests
 
         var result = await controller.RequestHint(
             playerId: 42,
-            new HintRequestDto(1, "Practice", ConceptTag: "Arrays"),
+            new HintRequestDto(1, "Practice", ConceptTag: Concept.Arrays),
             CancellationToken.None);
 
         Assert.IsType<ForbidResult>(result.Result);
@@ -399,7 +399,7 @@ public class EconomySecurityTests
     public async Task SahmRequestHint_WhenAuthorized_ReturnsOkWithHint()
     {
         var hint = new HintResponseDto("Free", HintLevel.ConceptualNudge, 1, 2, DateTime.UtcNow.Date.AddDays(1), null);
-        var request = new HintRequestDto(1, "Practice", ConceptTag: "Arrays");
+        var request = new HintRequestDto(1, "Practice", ConceptTag: Concept.Arrays);
 
         _sahmMock.Setup(s => s.RequestHintAsync(42, request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(hint));
@@ -419,7 +419,7 @@ public class EconomySecurityTests
     [Fact]
     public async Task SahmRequestHint_WhenLimitReached_ReturnsErrorResult()
     {
-        var request = new HintRequestDto(1, "Practice", ConceptTag: "Arrays");
+        var request = new HintRequestDto(1, "Practice", ConceptTag: Concept.Arrays);
         _sahmMock.Setup(s => s.RequestHintAsync(42, request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure<HintResponseDto>(SahmErrors.DailyHintLimitReached));
 

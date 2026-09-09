@@ -15,7 +15,10 @@ public class SideTaskTemplateConfiguration : IEntityTypeConfiguration<SideTaskTe
 
         builder.Property(t => t.ConceptTag)
                .HasColumnType("varchar(50)")
-               .IsRequired();
+               .IsRequired()
+               .HasConversion(
+                   v => v.ToString(),
+                   v => Enum.Parse<Concept>(v, true));
 
         // PlayerRank enum → string (with space for ExperiencedJunior)
         builder.Property(t => t.RankRequired)

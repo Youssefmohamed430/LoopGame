@@ -3,6 +3,6 @@ namespace LoopGame.Application.Dtos;
 public record HintRequestDto(
     int TaskId,
     string TaskType,
-    string? ConceptTag = null,
+    Concept? ConceptTag = null,
     string? ErrorMessage = null,
     string? CurrentCode = null);

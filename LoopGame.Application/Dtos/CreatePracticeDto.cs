@@ -10,7 +10,7 @@ public class CreatePracticeDto
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? StarterCode { get; set; }
-    public string ConceptTag { get; set; } = string.Empty;
+    public Concept ConceptTag { get; set; }
 
     /// <summary>SpacedRetrieval | Standard | Challenge</summary>
     public string Difficulty { get; set; } = "Standard";

@@ -21,7 +21,10 @@ public class AssessmentEventConfiguration : IEntityTypeConfiguration<AssessmentE
             "'gate_cleared','shift_completed')");
 
         builder.Property(e => e.ConceptTag)
-               .HasColumnType("varchar(50)");
+               .HasColumnType("varchar(50)")
+               .HasConversion(
+                   v => v.HasValue ? v.Value.ToString() : null,
+                   v => string.IsNullOrEmpty(v) ? null : Enum.Parse<Concept>(v, true));
 
         builder.Property(e => e.Tier)
                .HasColumnType("varchar(20)");

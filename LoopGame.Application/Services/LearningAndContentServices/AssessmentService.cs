@@ -64,10 +64,10 @@ public class AssessmentService(
 
         // Filter out non-learning evidence events (e.g. GateCleared, ShiftCompleted telemetry) early
         var genuineEvidenceEvents = events
-            .Where(e => !string.IsNullOrWhiteSpace(e.ConceptTag) && !IsProgressionEvent(e.EventType));
+            .Where(e => e.ConceptTag.HasValue && !IsProgressionEvent(e.EventType));
 
         // Group genuine learning evidence by concept tag
-        var conceptGroups = genuineEvidenceEvents.GroupBy(e => e.ConceptTag!);
+        var conceptGroups = genuineEvidenceEvents.GroupBy(e => e.ConceptTag!.Value);
 
         var now = DateTime.UtcNow;
         var snapshotRepo = _uow.GetRepository<ConceptMasterySnapshot>();

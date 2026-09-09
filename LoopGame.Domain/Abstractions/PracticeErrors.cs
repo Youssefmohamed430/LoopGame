@@ -36,7 +36,7 @@ public static class PracticeErrors
         new("Task.InvalidDescription", "Description is required and cannot be empty.");
 
     public static readonly Error InvalidConceptTag =
-        new("Task.InvalidConceptTag", "ConceptTag is required and cannot be empty.");
+        new("Task.InvalidConceptTag", "ConceptTag must be a valid Concept value.");
 
     public static readonly Error NegativeEgpReward =
         new("Task.NegativeEgpReward", "EgpReward Must be Positive number.");

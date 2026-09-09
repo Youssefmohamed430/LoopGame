@@ -56,7 +56,7 @@ public class SahmServiceTests : IDisposable
         return sub;
     }
 
-    private static HintRequestDto Request(string conceptTag = "loops") =>
+    private static HintRequestDto Request(Concept? conceptTag = Concept.Loops) =>
         new(TaskId: 5, TaskType: "practice", ConceptTag: conceptTag);
 
     // ── RequestHintAsync ─────────────────────────────────────────────
