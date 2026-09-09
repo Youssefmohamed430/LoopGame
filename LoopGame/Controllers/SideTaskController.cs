@@ -17,6 +17,7 @@ namespace LoopGame.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/sidetask")]
+[Authorize("Player")]
 public class SideTaskController(ISideTaskService _sideTask) : ControllerBase
 {
     /// <summary>
