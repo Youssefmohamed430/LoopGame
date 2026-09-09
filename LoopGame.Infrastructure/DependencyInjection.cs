@@ -16,9 +16,11 @@ public static class DependencyInjection
                 npgsqlOptions => npgsqlOptions.MigrationsAssembly(
                     typeof(AppDbContext).Assembly.FullName)));
 
-        services.AddIdentity<ApplicationUser, IdentityRole<int>>()
-                .AddEntityFrameworkStores<AppDbContext>()
-                .AddDefaultTokenProviders();
+        services.AddIdentity<ApplicationUser, IdentityRole<int>>(options =>
+        {
+            options.User.RequireUniqueEmail = true;
+        }).AddEntityFrameworkStores<AppDbContext>()
+          .AddDefaultTokenProviders();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IPlayerEconomyRepository, PlayerEconomyRepository>();
 

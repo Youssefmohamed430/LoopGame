@@ -26,13 +26,13 @@ namespace LoopGame.Application.Utilities
         {
             try
             {
-                using var client = new SmtpClient(_settings.SmtpServer, _settings.SmtpPort);
+                using var client = new SmtpClient(_settings.SmtpHost, _settings.SmtpPort);
                 client.EnableSsl = _settings.EnableSsl;
                 client.Credentials = new NetworkCredential(_settings.SenderEmail, _settings.Password);
 
                 var subject = Purpose switch
                 {
-                    "ResetPassword" => "ShiftOS — Reset Your Password",
+                    "PasswordReset" => "ShiftOS — Reset Your Password",
                     _ => "ShiftOS — Verification Code"
                 };
                 var message = new MailMessage

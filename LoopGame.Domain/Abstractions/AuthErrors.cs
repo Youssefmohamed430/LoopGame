@@ -22,6 +22,8 @@ namespace LoopGame.Domain.Abstractions
 
         public static Error InvalidOtp()
             => new("Auth.InvalidOtp", "Invalid or expired OTP.");
+        public static Error InvalidOtpAttempts()
+            => new("Auth.InvalidOtpAttempts", "Invalid OTP you need a new one.");
 
         public static Error OtpUsed()
             => new("Auth.OtpUsed", "OTP has already been used.");
