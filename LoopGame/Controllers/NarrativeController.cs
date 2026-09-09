@@ -27,6 +27,10 @@ public class NarrativeController(
     public async Task<ActionResult<NarrativeFlowDto>> StartShift(int playerId, int shiftId)
         => await Handle(_narrative.StartShift(playerId, shiftId));
 
+    [HttpPost("{playerId:int}/shifts/{shiftId:int}/{beatId:int}/save")]
+    public async Task<ActionResult<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId)
+        => await Handle(_narrative.Save(playerId, shiftId, beatId));
+
     /// <summary>
     /// Retrieves all choices available to the player for a specific story beat.
     /// </summary>

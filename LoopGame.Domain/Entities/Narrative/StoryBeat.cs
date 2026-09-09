@@ -28,5 +28,6 @@ public class StoryBeat
     // Navigation
     public Shift                  Shift       { get; set; } = null!;
     public ICollection<Choice>    Choices     { get; set; } = [];
+    public ICollection<PlayerSave> PlayerSaves { get; set; } = [];
     public Consequence?           Consequence { get; set; }
 }
