@@ -12,6 +12,7 @@ public interface INarrativeService
     /// Merges pending consequence beats with standard narrative beats.
     /// </summary>
     Task<Result<NarrativeFlowDto>> StartShift(int playerId, int shiftId);
+    Task<Result<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId);
 
     // ── Shift management (Admin) ──────────────────────────────────────────────
 

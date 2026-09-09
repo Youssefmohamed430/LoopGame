@@ -9,7 +9,10 @@ public class ConceptMasterySnapshotConfiguration : IEntityTypeConfiguration<Conc
 
         builder.Property(s => s.ConceptTag)
                .HasColumnType("varchar(50)")
-               .IsRequired();
+               .IsRequired()
+               .HasConversion(
+                   v => v.ToString(),
+                   v => Enum.Parse<Concept>(v, true));
 
         // DECIMAL(5,4): e.g. 0.7500
         builder.Property(s => s.MasteryScore)

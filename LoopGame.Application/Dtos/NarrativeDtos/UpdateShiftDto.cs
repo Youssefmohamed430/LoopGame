@@ -10,6 +10,7 @@ public class UpdateShiftDto
     public int?    ShiftNumber   { get; set; }
     public int?    ChapterNumber { get; set; }
     public string? Title         { get; set; }
+    public Concept ConceptTag { get; set; }
     public string? Description   { get; set; }
     public bool?   IsCapstone    { get; set; }
 

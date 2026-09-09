@@ -53,14 +53,18 @@ public class ShopService(
 
     public async Task<Result<PurchaseResultDto>> PurchaseItemAsync(int playerId, int itemId, CancellationToken ct = default)
     {
-        await _uow.BeginTransactionAsync(ct);
+        var ownsTransaction = !_economyRepo.HasActiveTransaction;
+        if (ownsTransaction)
+            await _uow.BeginTransactionAsync(ct);
+
         try
         {
             // Lock the economy row FIRST.
             var economy = await _economyRepo.GetForUpdateAsync(playerId, ct);
             if (economy is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(EconomyErrors.PlayerEconomyNotFound);
             }
 
@@ -72,7 +76,8 @@ public class ShopService(
 
             if (item is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(ShopErrors.ItemNotFoundOrUnavailable);
             }
 
@@ -84,13 +89,15 @@ public class ShopService(
 
             if (rank is null)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(EconomyErrors.PlayerNotFound);
             }
 
             if (item.RankRequired.HasValue && (int)rank.Value < (int)item.RankRequired.Value)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(ShopErrors.RankNotMet);
             }
 
@@ -98,7 +105,8 @@ public class ShopService(
             // error ordering — the authoritative debit happens via TryDebit below).
             if (economy.Balance < item.Price)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(EconomyErrors.InsufficientBalance);
             }
 
@@ -108,14 +116,16 @@ public class ShopService(
             {
                 if (!SahmTierPolicy.TryParseFromItemKey(item.ItemKey, out var targetTier))
                 {
-                    await _uow.RollbackAsync(ct);
+                    if (ownsTransaction)
+                        await _uow.RollbackAsync(ct);
                     return Result.Failure<PurchaseResultDto>(SahmErrors.InvalidTierUpgrade);
                 }
 
                 var currentTier = await GetActiveSahmTierAsync(playerId, ct);
                 if ((int)targetTier <= (int)currentTier)
                 {
-                    await _uow.RollbackAsync(ct);
+                    if (ownsTransaction)
+                        await _uow.RollbackAsync(ct);
                     return Result.Failure<PurchaseResultDto>(SahmErrors.InvalidTierUpgrade);
                 }
 
@@ -129,7 +139,8 @@ public class ShopService(
 
             if (owned)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(ShopErrors.AlreadyOwned);
             }
 
@@ -137,7 +148,8 @@ public class ShopService(
             var debit = economy.TryDebit(item.Price, TransactionType.Purchase, $"Purchased {item.DisplayName}", itemId);
             if (debit.IsFailure)
             {
-                await _uow.RollbackAsync(ct);
+                if (ownsTransaction)
+                    await _uow.RollbackAsync(ct);
                 return Result.Failure<PurchaseResultDto>(debit.Error);
             }
             await _uow.GetRepository<Transaction>().AddAsync(debit.Value);
@@ -162,7 +174,8 @@ public class ShopService(
             }
 
             await _uow.SaveAsync(ct);
-            await _uow.CommitAsync(ct);
+            if (ownsTransaction)
+                await _uow.CommitAsync(ct);
 
             return new PurchaseResultDto(itemId, item.ItemKey, item.Price, economy.Balance, newSahmTier);
         }
@@ -170,7 +183,8 @@ public class ShopService(
         {
             // Cleanup must not be cancellable: a cancelled ct must not mask the
             // original exception or leave the transaction open.
-            await _uow.RollbackAsync(CancellationToken.None);
+            if (ownsTransaction)
+                await _uow.RollbackAsync(CancellationToken.None);
             throw;
         }
     }

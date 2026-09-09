@@ -20,7 +20,7 @@ public class AssessmentServiceTests : IDisposable
 {
     private const int PlayerId = 1;
     private const int ShiftId = 10;
-    private const string ConceptTag = "loops";
+    private const Concept ConceptTag = Concept.Variables;
 
     private readonly AppDbContext _db;
     private readonly Mock<IUnitOfWork> _uow = new();
@@ -53,13 +53,15 @@ public class AssessmentServiceTests : IDisposable
         var player = new Player
         {
             PlayerId = PlayerId,
+            PlayerName = "TestPlayer",
             CurrentShiftId = ShiftId
         };
         var shift = new Shift
         {
             ShiftId = ShiftId,
             ShiftNumber = 1,
-            Title = "Introduction to Loops"
+            Title = "Introduction to Loops",
+            ConceptTag = ConceptTag
         };
 
         _db.Players.Add(player);
@@ -210,12 +212,14 @@ public class AssessmentServiceTests : IDisposable
             ShiftId = ShiftId,
             ShiftNumber = 1,
             Title = "Shift 1",
+            ConceptTag = ConceptTag,
             PracticeTasks = [task]
         };
 
         var player = new Player
         {
             PlayerId = PlayerId,
+            PlayerName = "TestPlayer",
             CurrentShiftId = ShiftId,
             CurrentShift = shift,
             ShiftProgresses = [shiftProgress]
@@ -289,12 +293,14 @@ public class AssessmentServiceTests : IDisposable
             ShiftId = ShiftId,
             ShiftNumber = 1,
             Title = "Shift 1",
+            ConceptTag = ConceptTag,
             PracticeTasks = [task]
         };
 
         var player = new Player
         {
             PlayerId = PlayerId,
+            PlayerName = "TestPlayer",
             CurrentShiftId = ShiftId,
             CurrentShift = shift,
             ShiftProgresses = [

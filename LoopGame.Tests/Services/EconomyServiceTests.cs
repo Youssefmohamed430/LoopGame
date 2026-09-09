@@ -18,6 +18,7 @@ public class EconomyServiceTests : IDisposable
 
     private readonly AppDbContext _db;
     private readonly Mock<IUnitOfWork> _uow = new();
+    private readonly FakeEconomyRepository _economyRepo;
     private readonly EconomyService _sut;
 
     public EconomyServiceTests()
@@ -37,6 +38,8 @@ public class EconomyServiceTests : IDisposable
             .Returns(new BaseRepository<PlayerChoice>(_db));
         _uow.Setup(u => u.GetRepository<PlayerInventory>())
             .Returns(new BaseRepository<PlayerInventory>(_db));
+        _uow.Setup(u => u.GetRepository<SahmSubscription>())
+            .Returns(new BaseRepository<SahmSubscription>(_db));
 
         _uow.Setup(u => u.SaveAsync(It.IsAny<CancellationToken>()))
             .Returns((CancellationToken ct) => _db.SaveChangesAsync(ct));
@@ -45,13 +48,15 @@ public class EconomyServiceTests : IDisposable
         _uow.Setup(u => u.RollbackAsync(It.IsAny<CancellationToken>())).Returns(Task.CompletedTask);
 
         // Fake economy repository: InMemory can't run FOR UPDATE raw SQL.
-        var economyRepo = new FakeEconomyRepository(_db);
+        _economyRepo = new FakeEconomyRepository(_db);
 
-        _sut = new EconomyService(_uow.Object, economyRepo);
+        _sut = new EconomyService(_uow.Object, _economyRepo);
     }
 
     private sealed class FakeEconomyRepository(AppDbContext db) : IPlayerEconomyRepository
     {
+        public bool HasActiveTransaction { get; set; } = false;
+
         public Task<PlayerEconomy?> GetForUpdateAsync(int playerId, CancellationToken ct = default)
             => db.PlayerEconomies.FirstOrDefaultAsync(p => p.PlayerId == playerId);
     }
@@ -69,7 +74,7 @@ public class EconomyServiceTests : IDisposable
 
     private async Task SeedPlayerAsync(PlayerRank rank = PlayerRank.Intern)
     {
-        _db.Players.Add(new Player { PlayerId = PlayerId, Rank = rank });
+        _db.Players.Add(new Player { PlayerId = PlayerId, Rank = rank, PlayerName = "TestPlayer" });
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
     }
@@ -79,7 +84,7 @@ public class EconomyServiceTests : IDisposable
     {
         await SeedEconomyAsync(500m);
         var economy = await _db.PlayerEconomies.SingleAsync(e => e.PlayerId == PlayerId);
-        economy.SalaryTier = 3; // ExperiencedJunior
+        economy.SetSalaryTier(3); // ExperiencedJunior
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
 
@@ -144,7 +149,7 @@ public class EconomyServiceTests : IDisposable
     [Fact]
     public async Task ApplyEgpDelta_MissingEconomy_FailsAndRollsBack()
     {
-        var result = await _sut.ApplyEgpDeltaAsync(999, 50m, TransactionType.Purchase, "x");
+        var result = await _sut.ApplyEgpDeltaAsync(999, 50m, TransactionType.Bonus, "x");
 
         Assert.True(result.IsFailure);
         Assert.Equal(EconomyErrors.PlayerEconomyNotFound, result.Error);
@@ -306,6 +311,187 @@ public class EconomyServiceTests : IDisposable
 
         Assert.True(result.IsFailure);
         Assert.Equal(EconomyErrors.InvalidPagination, result.Error);
+    }
+
+    [Fact]
+    public async Task ApplyEgpDelta_WhenOuterTransactionActive_DoesNotBeginOrCommitTransaction()
+    {
+        await SeedEconomyAsync(100m);
+        _economyRepo.HasActiveTransaction = true;
+
+        var result = await _sut.ApplyEgpDeltaAsync(PlayerId, 50m, TransactionType.Bonus, "outer tx test");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(150m, result.Value);
+
+        // Verify that EconomyService did NOT call BeginTransactionAsync or CommitAsync
+        _uow.Verify(u => u.BeginTransactionAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _uow.Verify(u => u.CommitAsync(It.IsAny<CancellationToken>()), Times.Never);
+        // But SaveAsync MUST have been called
+        _uow.Verify(u => u.SaveAsync(It.IsAny<CancellationToken>()), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task InitializePlayerEconomy_WhenPlayerExists_CreatesEconomyWithZeroBalance()
+    {
+        const int newPlayerId = 99;
+        _db.Players.Add(new Player { PlayerId = newPlayerId, PlayerName = "NewUser" });
+        await _db.SaveChangesAsync();
+
+        var result = await _sut.InitializePlayerEconomyAsync(newPlayerId);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0m, result.Value.Balance);
+        Assert.Equal(0m, result.Value.TotalEarned);
+        Assert.Equal(0m, result.Value.TotalSpent);
+
+        var created = await _db.PlayerEconomies.FirstOrDefaultAsync(e => e.PlayerId == newPlayerId);
+        Assert.NotNull(created);
+        Assert.Equal(0m, created.Balance);
+        Assert.Equal(1, created.SalaryTier);
+    }
+
+    [Fact]
+    public async Task InitializePlayerEconomy_WhenPlayerDoesNotExist_ReturnsPlayerNotFound()
+    {
+        var result = await _sut.InitializePlayerEconomyAsync(9999);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.PlayerNotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task InitializePlayerEconomy_WhenEconomyAlreadyExists_ReturnsConflict()
+    {
+        await SeedPlayerAsync();
+        await SeedEconomyAsync(500m);
+
+        var result = await _sut.InitializePlayerEconomyAsync(PlayerId);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.EconomyAlreadyExists, result.Error);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void SetSalaryTier_ValidRange_Succeeds(int tier)
+    {
+        var economy = new PlayerEconomy(PlayerId);
+        var result = economy.SetSalaryTier(tier);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(tier, economy.SalaryTier);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(-1)]
+    public void SetSalaryTier_OutOfRange_Fails(int tier)
+    {
+        var economy = new PlayerEconomy(PlayerId);
+        var result = economy.SetSalaryTier(tier);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.InvalidSalaryTier, result.Error);
+        Assert.Equal(1, economy.SalaryTier); // remains initial default
+    }
+
+    [Theory]
+    [InlineData(TransactionType.Purchase)]
+    [InlineData(TransactionType.Penalty)]
+    public async Task ApplyEgpDelta_WhenPositiveDeltaWithDebitType_ReturnsInvalidTransactionType(TransactionType type)
+    {
+        await SeedEconomyAsync(100m);
+
+        var result = await _sut.ApplyEgpDeltaAsync(PlayerId, 50m, type, "Illegal positive debit");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.InvalidTransactionType, result.Error);
+    }
+
+    [Theory]
+    [InlineData(TransactionType.Salary)]
+    [InlineData(TransactionType.Bonus)]
+    [InlineData(TransactionType.SideTask)]
+    [InlineData(TransactionType.BugBounty)]
+    public async Task ApplyEgpDelta_WhenNegativeDeltaWithCreditType_ReturnsInvalidTransactionType(TransactionType type)
+    {
+        await SeedEconomyAsync(100m);
+
+        var result = await _sut.ApplyEgpDeltaAsync(PlayerId, -50m, type, "Illegal negative credit");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.InvalidTransactionType, result.Error);
+    }
+
+    [Fact]
+    public async Task ApplyEgpDelta_WhenAmountExceedsMaximum_ReturnsAmountExceedsMaximum()
+    {
+        await SeedEconomyAsync(100m);
+
+        var result = await _sut.ApplyEgpDeltaAsync(PlayerId, 100_000_000m, TransactionType.Bonus, "Too big");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(EconomyErrors.AmountExceedsMaximum, result.Error);
+    }
+
+    [Fact]
+    public async Task PayShiftSalary_SynchronizesSalaryTier_WithPromotedRank()
+    {
+        // Seed player as Senior (rank 3 -> tier 4)
+        await SeedPlayerAsync(PlayerRank.Senior);
+        await SeedEconomyAsync(0m);
+
+        var economy = await _db.PlayerEconomies.SingleAsync(e => e.PlayerId == PlayerId);
+        Assert.Equal(1, economy.SalaryTier); // starts at default tier 1
+
+        var result = await _sut.PayShiftSalaryAsync(PlayerId, 1);
+
+        Assert.True(result.IsSuccess);
+        _db.ChangeTracker.Clear();
+
+        var updated = await _db.PlayerEconomies.SingleAsync(e => e.PlayerId == PlayerId);
+        Assert.Equal(4, updated.SalaryTier); // synced to Senior rank (3 + 1)
+    }
+
+    [Fact]
+    public async Task ResetEconomy_DeletesSahmSubscriptions_AsWellAsInventoryAndTransactions()
+    {
+        await SeedPlayerAsync();
+        await SeedEconomyAsync(500m);
+
+        _db.SahmSubscriptions.Add(new SahmSubscription
+        {
+            PlayerId = PlayerId,
+            Tier = SahmTier.Pro,
+            DailyHintLimit = 5,
+            HintsUsedToday = 2
+        });
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var result = await _sut.ResetEconomyAsync(PlayerId);
+
+        Assert.True(result.IsSuccess);
+        _db.ChangeTracker.Clear();
+
+        var remainingSubscriptions = await _db.SahmSubscriptions.CountAsync(s => s.PlayerId == PlayerId);
+        Assert.Equal(0, remainingSubscriptions);
+    }
+
+    [Fact]
+    public async Task ApplyEgpDelta_RoundsFractionalPiasters_AwayFromZero()
+    {
+        await SeedEconomyAsync(100m);
+
+        // 10.005 rounds away from zero to 10.01
+        var result = await _sut.ApplyEgpDeltaAsync(PlayerId, 10.005m, TransactionType.Bonus, "Fractional");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(110.01m, result.Value);
     }
 
     public void Dispose() => _db.Dispose();

@@ -17,7 +17,10 @@ public class PracticeTaskConfiguration : IEntityTypeConfiguration<PracticeTask>
 
         builder.Property(t => t.ConceptTag)
                .HasColumnType("varchar(50)")
-               .IsRequired();
+               .IsRequired()
+               .HasConversion(
+                   v => v.ToString(),
+                   v => Enum.Parse<Concept>(v, true));
 
         builder.Property(t => t.Difficulty)
                .HasColumnType("varchar(20)")

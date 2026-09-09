@@ -22,6 +22,6 @@ public class PlayerShiftProgress
     public short              GateAttempts   { get; set; } = 0;
 
     // Navigation
-    public Player Player { get; set; } = null!;
-    public Shift  Shift  { get; set; } = null!;
+    public Player Player { get; set; }  = null!;
+    public Shift  Shift  { get; set; }  = null!;
 }

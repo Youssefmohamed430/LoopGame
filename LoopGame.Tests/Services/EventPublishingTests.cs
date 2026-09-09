@@ -20,7 +20,7 @@ public class EventPublishingTests
         var handlers = new List<IEventHandler> { handler1.Object, handler2.Object };
 
         var publisher = new InProcessEventPublisher(handlers, NullLogger<InProcessEventPublisher>.Instance);
-        var gameEvent = new GameEventDto(1, "practice_attempt", "loops", "Ideal", null);
+        var gameEvent = new GameEventDto(1, "practice_attempt", Concept.Loops, "Ideal", null);
 
         // Act
         publisher.Publish(gameEvent);
@@ -42,7 +42,7 @@ public class EventPublishingTests
 
         var handlers = new List<IEventHandler> { failingHandler.Object, succeedingHandler.Object };
         var publisher = new InProcessEventPublisher(handlers, NullLogger<InProcessEventPublisher>.Instance);
-        var gameEvent = new GameEventDto(1, "choice_submission", "beat1", "Ideal", null);
+        var gameEvent = new GameEventDto(1, "choice_submission", Concept.Basics, "Ideal", null);
 
         // Act & Assert (Should not throw)
         publisher.Publish(gameEvent);
@@ -56,7 +56,7 @@ public class EventPublishingTests
         // Arrange
         var backgroundJobs = new Mock<IBackgroundJobClient>();
         var handler = new AssessmentEventHandler(backgroundJobs.Object, NullLogger<AssessmentEventHandler>.Instance);
-        var gameEvent = new GameEventDto(1, "hint_request", "loops", "Free", null);
+        var gameEvent = new GameEventDto(1, "hint_request", Concept.Loops, "Free", null);
 
         // Act
         handler.Handle(gameEvent);
@@ -76,7 +76,7 @@ public class EventPublishingTests
             .Throws(new Exception("Hangfire down"));
 
         var handler = new AssessmentEventHandler(backgroundJobs.Object, NullLogger<AssessmentEventHandler>.Instance);
-        var gameEvent = new GameEventDto(1, "hint_request", "loops", "Free", null);
+        var gameEvent = new GameEventDto(1, "hint_request", Concept.Loops, "Free", null);
 
         // Act & Assert (Should not throw exception)
         handler.Handle(gameEvent);

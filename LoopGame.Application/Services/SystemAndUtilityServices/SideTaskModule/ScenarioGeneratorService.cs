@@ -41,12 +41,9 @@ public class ScenarioGeneratorService(
             var conceptTag = snapshot.ConceptTag;
             _logger.LogInformation("Processing concept '{Concept}' for player {PlayerId}", conceptTag, playerId);
 
-            // Try to parse string conceptTag into Concept enum
-            Enum.TryParse<Concept>(conceptTag, true, out var conceptEnum);
-
             // Find single SheetFile for this concept
             var sheetFile = await _unitOfWork.GetRepository<SheetFile>()
-                .FindAsync(f => f.Concept == conceptEnum || f.Concept.ToString() == conceptTag);
+                .FindAsync(f => f.Concept == conceptTag);
 
             if (sheetFile is null)
             {
@@ -95,12 +92,12 @@ public class ScenarioGeneratorService(
             var aiRequest = new AiGenerateRequest
             {
                 PlayerId = playerId,
-                Concept = conceptTag,
+                Concept = conceptTag.ToString(),
                 SheetContent = sheetContent,
                 ReferenceScenario = new SideTaskReferenceScenarioRequest
                 {
                     TemplateKey = template.TemplateKey,
-                    ConceptTag = template.ConceptTag,
+                    ConceptTag = template.ConceptTag.ToString(),
                     RankRequired = template.RankRequired,
                     TitleTemplate = template.TitleTemplate,
                     DescriptionTemplate = template.DescriptionTemplate,

@@ -16,7 +16,7 @@ public class AssessmentEvent
     /// </summary>
     public string   EventType   { get; set; } = string.Empty;
 
-    public string?  ConceptTag  { get; set; }
+    public Concept?  ConceptTag  { get; set; }
     public string?  Tier        { get; set; }
 
     /// <summary>JSON telemetry payload (event-specific).</summary>

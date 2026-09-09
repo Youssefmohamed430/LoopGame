@@ -9,4 +9,6 @@ public class PlayerEconomyRepository(AppDbContext _context) : IPlayerEconomyRepo
         => await _context.PlayerEconomies
             .FromSqlInterpolated($"SELECT * FROM \"PlayerEconomy\" WHERE \"PlayerId\" = {playerId} FOR UPDATE")
             .FirstOrDefaultAsync(ct);
+
+    public bool HasActiveTransaction => _context.Database.CurrentTransaction != null;
 }

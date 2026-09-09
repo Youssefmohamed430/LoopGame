@@ -16,6 +16,14 @@ public class ShiftConfiguration : IEntityTypeConfiguration<Shift>
         builder.Property(s => s.Description)
                .HasMaxLength(1000);
 
+        builder.Property(s => s.ConceptTag)
+               .HasColumnType("varchar(50)")
+               .IsRequired()
+               .HasDefaultValue(Concept.Basics)
+               .HasConversion(
+                   v => v.ToString(),
+                   v => Enum.Parse<Concept>(v, true));
+
         builder.Property(s => s.CreatedAt)
                .HasColumnType("timestamp with time zone")
                .HasDefaultValueSql("NOW()");

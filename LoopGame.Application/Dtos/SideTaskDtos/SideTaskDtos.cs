@@ -7,7 +7,7 @@ public record SideTaskDto(
     string    Description,
     decimal   EgpReward,
     string    Status,           // Active / Submitted / Abandoned / Expired
-    string    ConceptTag
+    Concept   ConceptTag
 );
 
 /// <summary>Player submits their code solution for a side task.</summary>

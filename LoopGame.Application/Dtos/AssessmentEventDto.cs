@@ -8,7 +8,7 @@ namespace LoopGame.Application.Dtos;
 public record AssessmentEventDto(
     int PlayerId,
     string EventType,
-    string? ConceptTag,
+    Concept? ConceptTag,
     string? Tier,
     string? PayloadJson,
     Guid? SessionId = null,

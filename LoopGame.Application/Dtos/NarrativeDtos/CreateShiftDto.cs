@@ -10,6 +10,7 @@ public class CreateShiftDto
     public int    ChapterNumber { get; set; }
     public string Title         { get; set; } = string.Empty;
     public string? Description  { get; set; }
+    public Concept ConceptTag { get; set; }
     public bool   IsCapstone    { get; set; } = false;
 
     /// <summary>

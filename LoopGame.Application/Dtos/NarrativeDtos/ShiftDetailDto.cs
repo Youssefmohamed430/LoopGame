@@ -10,6 +10,7 @@ public class ShiftDetailDto
     public int    ChapterNumber { get; set; }
     public string Title         { get; set; } = string.Empty;
     public string? Description  { get; set; }
+    public Concept ConceptTag   { get; set; }
     public bool   IsCapstone    { get; set; }
 
     /// <summary>Null means no unlock gate.</summary>

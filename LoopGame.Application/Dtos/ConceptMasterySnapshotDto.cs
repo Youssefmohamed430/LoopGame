@@ -7,7 +7,7 @@ public record ConceptMasterySnapshotDto(
     int SnapshotId,
     int PlayerId,
     int ShiftId,
-    string ConceptTag,
+    Concept ConceptTag,
     decimal MasteryScore,
     int EvidenceCount,
     DateTime SnapshottedAt);

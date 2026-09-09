@@ -9,7 +9,7 @@ public class ConceptMasterySnapshot
     public int      SnapshotId     { get; set; }
     public int      PlayerId       { get; set; }
     public int      ShiftId        { get; set; }
-    public string   ConceptTag     { get; set; } = string.Empty;
+    public Concept   ConceptTag     { get; set; }
     public decimal  MasteryScore   { get; set; } // [0, 1]
     public int      EvidenceCount  { get; set; } = 0;
     public DateTime SnapshottedAt  { get; set; } = DateTime.UtcNow;

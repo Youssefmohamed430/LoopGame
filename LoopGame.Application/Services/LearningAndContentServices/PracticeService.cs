@@ -175,8 +175,8 @@ public class PracticeService(
         if (string.IsNullOrWhiteSpace(practice.Description))
             return Result.Failure<PracticeDto>(PracticeErrors.InvalidDescription);
 
-        if (string.IsNullOrWhiteSpace(practice.ConceptTag))
-            return Result.Failure<PracticeDto>(PracticeErrors.InvalidDescription);
+        if (!Enum.IsDefined(typeof(Concept), practice.ConceptTag))
+            return Result.Failure<PracticeDto>(PracticeErrors.InvalidConceptTag);
 
         if(practice.EgpReward <= 0)
             return Result.Failure<PracticeDto>(PracticeErrors.NegativeEgpReward);
@@ -200,6 +200,9 @@ public class PracticeService(
 
         if (task is null)
             return Result.Failure<PracticeDto>(PracticeErrors.TaskNotFound);
+
+        if (practice.ConceptTag is { } conceptTag && !Enum.IsDefined(typeof(Concept), conceptTag))
+            return Result.Failure<PracticeDto>(PracticeErrors.InvalidConceptTag);
 
         ApplyTaskUpdates(practice, task);
         _uow.GetRepository<PracticeTask>().UpdateAsync(task);
@@ -272,7 +275,7 @@ public class PracticeService(
     {
         task.MaxAttempts = practice.MaxAttempts ?? task.MaxAttempts;
         task.StarterCode = practice.StarterCode ?? task.StarterCode;
-        task.ConceptTag  = !string.IsNullOrWhiteSpace(practice.ConceptTag)  ? practice.ConceptTag  : task.ConceptTag;
+        task.ConceptTag  = practice.ConceptTag ?? task.ConceptTag;
         task.Description = !string.IsNullOrWhiteSpace(practice.Description) ? practice.Description : task.Description;
         task.Difficulty  = !string.IsNullOrWhiteSpace(practice.Difficulty)  ? practice.Difficulty  : task.Difficulty;
         task.TaskOrder   = practice.TaskOrder ?? task.TaskOrder;

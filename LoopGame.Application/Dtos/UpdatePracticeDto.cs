@@ -10,7 +10,7 @@ public class UpdatePracticeDto
     public string? Title { get; set; }
     public string? Description { get; set; }
     public string? StarterCode { get; set; }
-    public string? ConceptTag { get; set; }
+    public Concept? ConceptTag { get; set; }
 
     /// <summary>SpacedRetrieval | Standard | Challenge</summary>
     public string? Difficulty { get; set; }

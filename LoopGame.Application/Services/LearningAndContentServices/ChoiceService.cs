@@ -172,7 +172,7 @@ public class ChoiceService
             .FindAsync(p => p.PlayerId == PlayerId,new string [] {"ShiftProgresses"});
 
         var choice = await unitOfWork.GetRepository<Choice>()
-            .FindAsync(c => c.ChoiceId == choiceid,new string[] {"Beat"});
+            .FindAsync(c => c.ChoiceId == choiceid,new string[] {"Beat.Shift"});
 
         if (choice.Beat.ShiftId != player.CurrentShiftId)
             return Result.Failure<ChoiceDto>(new Error("Forbidden.Access","You are not allowed to access this choice."));
@@ -205,7 +205,7 @@ public class ChoiceService
         eventPublisher.Publish(new GameEventDto(
             PlayerId,
             EventType:   AssessmentWeights.EventTypes.ChoiceSubmission,
-            ConceptTag:  choice.Beat.BeatKey,
+            ConceptTag: choice.Beat.Shift.ConceptTag,
             Tier:        choice.Tier.ToString(),
             PayloadJson: JsonSerializer.Serialize(new
             {
