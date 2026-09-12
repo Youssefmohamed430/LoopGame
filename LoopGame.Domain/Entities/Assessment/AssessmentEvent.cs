@@ -22,7 +22,6 @@ public class AssessmentEvent
     /// <summary>JSON telemetry payload (event-specific).</summary>
     public string?  Payload     { get; set; }
 
-    public Guid?    SessionId   { get; set; }
     public DateTime RecordedAt  { get; set; } = DateTime.UtcNow;
 
     // Navigation

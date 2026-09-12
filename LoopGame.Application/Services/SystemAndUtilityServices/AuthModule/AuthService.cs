@@ -15,6 +15,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
         private readonly IUnitOfWork _unitOfWork;
         private readonly ITokenService _tokenService;
         private readonly IEmailService _emailService;
+        private readonly IEconomyService _economyService;
         private readonly ILogger<AuthService> _logger;
 
         public AuthService(
@@ -22,12 +23,14 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             IUnitOfWork unitOfWork,
             ITokenService tokenService,
             IEmailService emailService,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            IEconomyService economyService)
         {
             _userManager = userManager;
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
             _emailService = emailService;
+            _economyService = economyService;
             _logger = logger;
         }
 
@@ -85,6 +88,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             await _userManager.AddToRoleAsync(user, "Player");
 
             await _unitOfWork.GetRepository<Player>().AddAsync(profile);
+            await _economyService.InitializePlayerEconomyAsync(user.Id);
             await _unitOfWork.SaveAsync();
 
             var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = Roles.Player.ToString() };

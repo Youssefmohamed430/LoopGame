@@ -26,7 +26,8 @@ public class PracticeService(
     IPracticeAttemptService    _attemptService,
     IProgressionService        _progressionService,
     IEventPublisher            _eventPublisher,
-    IAssessmentJobScheduler    _assessmentJobScheduler)
+    IAssessmentJobScheduler    _assessmentJobScheduler,
+    IEconomyService            _economyService)
     : IPracticeService
 {
     // ══════════════════════════════════════════════════════════════════════════
@@ -98,16 +99,19 @@ public class PracticeService(
         var attemptId = await _attemptService.RecordAttemptAsync(PlayerId, tier,testResults, code);
 
         // ── 7. Process PlayerShiftProgress / Gate (staged, not yet committed) ──
-        var progressResult = await _progressionService.ProcessSubmissionAsync(ctx.ShiftProgress, tier);
+        var progressResult = await _progressionService.ProcessSubmissionAsync(ctx.ShiftProgress, tier, code.TaskId);
         if (progressResult.IsFailure)
             return Result.Failure<CodeSubmitResponseDto>(progressResult.Error);
 
         var gateProgress = progressResult.Value;
 
-        // ── 8. Commit all staged changes atomically ────────────────────────────
+        // ── 8. Apply EGP reward (staged, not yet committed) ─────────────────────
+        await _economyService.ApplyEgpDeltaAsync(PlayerId, task.EgpReward, TransactionType.Bonus, $"Practice Task {task.TaskId} Attempt {attemptId}");
+
+        // ── 9. Commit all staged changes atomically ────────────────────────────
         await _uow.SaveAsync();
 
-        // ── 9. Emit PracticeAttempt assessment event (fire-and-forget) ─────────
+        // ── 10. Emit PracticeAttempt assessment event (fire-and-forget) ─────────
         _eventPublisher.Publish(new GameEventDto(
             PlayerId,
             EventType:   AssessmentWeights.EventTypes.PracticeAttempt,
@@ -121,7 +125,7 @@ public class PracticeService(
                 testResults
             })));
 
-        // ── 10. If gate was cleared: emit telemetry + schedule mastery ─────────
+        // ── 11. If gate was cleared: emit telemetry + schedule mastery ─────────
         if (gateProgress.GateCleared)
         {
             _eventPublisher.Publish(new GameEventDto(
@@ -141,7 +145,7 @@ public class PracticeService(
             _assessmentJobScheduler.EnqueueMasteryComputation(PlayerId, ctx.ShiftId);
         }
 
-        // ── 11. Build and return response ──────────────────────────────────────
+        // ── 12. Build and return response ──────────────────────────────────────
         bool struggleDetected = ctx.Player.PracticeAttempts
             .Count(p => p.TaskId == code.TaskId) > 4;
 

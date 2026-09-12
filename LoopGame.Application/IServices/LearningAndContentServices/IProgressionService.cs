@@ -24,5 +24,6 @@ public interface IProgressionService
     Task<Result<GateProgressResult>> ProcessSubmissionAsync(
         PlayerShiftProgress progress,
         ChoiceTier tier,
+        int taskid,
         CancellationToken ct = default);
 }

@@ -16,11 +16,16 @@ public sealed class MaxAttemptsPolicy(IUnitOfWork _uow) : IAttemptPolicy
         if (maxAttempts == 0)
             return Result.Success();
 
-        var count = _uow.GetRepository<PracticeAttempt>()
-            .FindAll(a => a.PlayerId == playerId && a.TaskId == taskId)
-            .Count();
+        var attempts = _uow.GetRepository<PracticeAttempt>()
+            .FindAll(a => a.PlayerId == playerId && a.TaskId == taskId);
 
-        if (count >= maxAttempts)
+        bool isCompleted = attempts.Any(a => a.IsCompleted);
+
+        if(isCompleted)
+            return Result.Failure(PracticeErrors.DuplicateCompletedTask);
+
+
+        if (attempts.Count() >= maxAttempts)
             return Result.Failure(PracticeErrors.MaxAttemptsReached);
 
         return Result.Success();
