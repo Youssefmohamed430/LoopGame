@@ -12,5 +12,6 @@ namespace LoopGame.Domain.Abstractions
         public static readonly Error FileUploadFailed = new("FileUploadFailed", "The file upload failed.");
         public static readonly Error FileNotFound = new("FileNotFound", "The file was not found.");
         public static readonly Error FileEmpty = new("FileEmpty", "The PDF does not contain readable text.");
+        public static readonly Error WrongConcept = new("WrongConcept", "The concept value is invalid.");
     }
 }

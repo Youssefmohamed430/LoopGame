@@ -24,9 +24,12 @@ public class AdminService : IAdminService
         _mapper = mapper;
         _userManager = userManager;
     }   
-    public async Task<Result> UploadAsync(Concept concept, int uploadedBy, IFormFile file)
+    public async Task<Result> UploadAsync(string concept, int uploadedBy, IFormFile file)
     {
-        var existingFile = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.Concept == concept && f.FileName == file.FileName)
+        if (!Enum.TryParse<Concept>(concept, true, out var c))
+            return Result.Failure(FileErrors.WrongConcept);
+
+        var existingFile = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.Concept == c && f.FileName == file.FileName)
                                                                        .FirstOrDefaultAsync();
         if (existingFile != null) 
             return Result.Failure(FileErrors.FileAlreadyExists);
@@ -40,7 +43,7 @@ public class AdminService : IAdminService
 
         var sideTaskFile = new SheetFile
         {
-            Concept = concept,
+            Concept = c,
             S3Key = s3Key.Value,
             FileName = file.FileName,
             UploadedAt = DateTime.UtcNow,
@@ -61,9 +64,11 @@ public class AdminService : IAdminService
         return Result.Success();
     }
 
-    public async Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(Concept concept)
+    public async Task<Result<List<SheetFileDto>>> ListUploadedFilesAsync(string concept)
     {
-        var files = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.Concept == concept).OrderByDescending(f => f.UploadedAt).ToListAsync();
+        if (!Enum.TryParse<Concept>(concept, true, out var c))
+            return  Result.Failure<List<SheetFileDto>>(FileErrors.FileNotFound);
+        var files = await _unitOfWork.GetRepository<SheetFile>().FindAll(f => f.Concept == c).OrderByDescending(f => f.UploadedAt).ToListAsync();
         var filesDto = _mapper.Map<List<SheetFileDto>>(files);
         return Result.Success(filesDto);
     }

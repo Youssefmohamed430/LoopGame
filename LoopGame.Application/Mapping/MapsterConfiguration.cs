@@ -50,6 +50,7 @@ public class MapsterConfiguration : IRegister
             .Map(dest => dest.FullName, src => src.DisplayName)
             .Map(dest => dest.UserId, src => src.Id);
 
+
         config.NewConfig<RegisterDto, Player>()
             .Map(dest => dest.PlayerName, src => src.Name);
 

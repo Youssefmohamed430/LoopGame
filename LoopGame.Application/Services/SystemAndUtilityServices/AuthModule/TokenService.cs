@@ -135,7 +135,6 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 UserId= storedToken.UserId,
                 Email= user.Email,
                 FullName= user.DisplayName,
-                Role= Enum.Parse<Roles>(role)
             });
         }
 
