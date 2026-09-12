@@ -1,6 +1,1215 @@
-@LoopGame_HostAddress = http://localhost:5195
+﻿### LoopGame — Chapter One: Grand Opening — Admin Content Setup
+### Based on: SHIFT — Chapter One: "Grand Opening"
+### Scenario: Variables -> Conditionals -> Loops
+### Runtime player actions intentionally excluded:
+### StartShift, SubmitChoice, SubmitCode, and other gameplay/runtime endpoints are NOT included.
 
-GET {{LoopGame_HostAddress}}/weatherforecast/
+@baseUrl = http://localhost:44398
+
+# ============================================================
+# 0) PLAYERS
+# ============================================================
+# The current API exposes registration through /api/auth/register.
+# Register two players that can later be used for gameplay testing.
+
+### Player 1 — Mohamed
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "mohamed",
+  "name": "Mohamed",
+  "email": "yossefmohmed430@gmail.com",
+  "password": "Mohamed#1234",
+  "confirmPassword": "Mohamed#1234"
+}
+
+> {%
+client.global.set("player1Id", response.body.player_id);
+client.global.set("player1AccessToken", response.body.access_token);
+%}
+
+###
+
+### Player 2 — Test Player
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "userName": "player11",
+  "name": "Player1",
+  "email": "player1@example.com",
+  "password": "Player1234",
+  "confirmPassword": "Player1234"
+}
+
+> {%
+client.global.set("player2Id", response.body.player_id);
+client.global.set("player2AccessToken", response.body.access_token);
+%}
+
+
+# ============================================================
+# CHAPTER ONE
+# ============================================================
+# Chapter One contains:
+#   Shift 1 -> Variables
+#   Shift 2 -> Conditionals
+#   Shift 3 -> Loops
+#
+# The Capstone "Grand Opening" is represented as the final
+# milestone inside Shift 3 because the current scenario does
+# not define a separate Capstone entity/endpoint.
+
+
+# ============================================================
+# 1) SHIFT ONE — VARIABLES
+# ============================================================
+
+### Create Shift 1
+POST {{baseUrl}}/api/admin/shifts
+Content-Type: application/json
+
+{
+  "shiftNumber": 1,
+  "chapterNumber": 1,
+  "title": "Variables",
+  "description": "Mohamed's first task at Loop: build Tante Layla's menu and discover why variables are useful.",
+  "conceptTag": "Variables",
+  "isCapstone": false,
+  "NumberOfTasks" : 3,
+  "unlockCondition": null
+}
+
+> {%
+client.global.set("shift1Id", response.body.shift_id);
+%}
+
+###
+
+### Shift 1 — Beat 1 — Youssef sends the first task
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "beatKey": "ch1_s1_first_task",
+  "beatType": "Narrative",
+  "sequenceOrder": 1,
+  "app": "MailLoop",
+  "senderName": "Youssef",
+  "contentJson": {
+    "text": "Subject: Tante Layla — First Build\nStart with the menu.\nCoffee, tea, croissant.\nNames and prices.\nMake it appear when the register opens.",
+    "avatar": "youssef",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": true
+}
+
+> {%
+client.global.set("s1Beat1Id", response.body.beat_id);
+%}
+
+###
+
+### Shift 1 — Beat 2 — Menu file
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "beatKey": "ch1_s1_menu_file",
+  "beatType": "Narrative",
+  "sequenceOrder": 2,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Tante_Layla_Menu.txt\n\nCoffee - 50 EGP\nTea - 35 EGP\nCroissant - 40 EGP",
+    "avatar": null,
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 1 — Beat 3 — Hardcoded prices
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "beatKey": "ch1_s1_hardcoded_prices",
+  "beatType": "Narrative",
+  "sequenceOrder": 3,
+  "app": "LoopCode",
+  "senderName": "Mohamed",
+  "contentJson": {
+    "text": "printf(\"Coffee - 50 EGP\\n\");\nprintf(\"Tea - 35 EGP\\n\");\nprintf(\"Croissant - 40 EGP\\n\");\n\nOutput:\nCoffee - 50 EGP\nTea - 35 EGP\nCroissant - 40 EGP",
+    "avatar": "mohamed",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 1 — Beat 4 — Salma changes the coffee price
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "beatKey": "ch1_s1_price_changes",
+  "beatType": "Narrative",
+  "sequenceOrder": 4,
+  "app": "WhatsUpp",
+  "senderName": "Salma",
+  "contentJson": {
+    "text": "Teta wants the coffee price changed to 45.\nAlso the receipt needs 45.\nRegister too.\nAnd the sign.\nAnd Friday is discount day.",
+    "avatar": "salma",
+    "sound_effect": "notification",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 1 — Beat 5 — Youssef explains variables
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "beatKey": "ch1_s1_variables_explained",
+  "beatType": "Narrative",
+  "sequenceOrder": 5,
+  "app": "WhatsUpp",
+  "senderName": "Youssef",
+  "contentJson": {
+    "text": "Think of a variable as one named place that holds the value.\nInstead of remembering where every 50 is.\n\nint coffeePrice = 45;\nprintf(\"Coffee - %d EGP\\n\", coffeePrice);\n\nChanging coffeePrice updates the output.",
+    "avatar": "youssef",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 1 — Consequence Beat — Player learned Variables
+# Consequence beats automatically create their Consequence row
+# in the current NarrativeService implementation.
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "beatKey": "ch1_s1_consequence_variables_learned",
+  "beatType": "Consequence",
+  "sequenceOrder": null,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Variable concept reinforced: Mohamed understands that one named value can replace repeated hardcoded values.",
+    "avatar": null,
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false,
+  "injectPosition": "end"
+}
+
+
+# ============================================================
+# 2) SHIFT TWO — CONDITIONALS
+# ============================================================
+
+### Create Shift 2
+POST {{baseUrl}}/api/admin/shifts
+Content-Type: application/json
+
+{
+  "shiftNumber": 2,
+  "chapterNumber": 1,
+  "title": "Conditionals",
+  "description": "Mohamed implements Tante Layla's discount rule and learns about comparisons and boundary conditions.",
+  "conceptTag": "Conditionals",
+  "isCapstone": false,
+  "NumberOfTasks" : 3,
+  "unlockCondition": {
+    "prerequisite_shift_id": 1,
+    "min_rank": null,
+    "required_concept": "Variables",
+    "min_mastery_score": 0.7
+  }
+}
+
+> {%
+client.global.set("shift2Id", response.body.shift_id);
+%}
+
+###
+
+### Shift 2 — Beat 1 — Salma requests the discount
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "beatKey": "ch1_s2_discount_request",
+  "beatType": "Narrative",
+  "sequenceOrder": 1,
+  "app": "WhatsUpp",
+  "senderName": "Salma",
+  "contentJson": {
+    "text": "If someone orders more than 200 EGP—\nDiscount?\nExactly.\nHow much?\n10%.",
+    "avatar": "salma",
+    "sound_effect": "notification",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 2 — Beat 2 — Formal discount requirement
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "beatKey": "ch1_s2_discount_requirement",
+  "beatType": "Narrative",
+  "sequenceOrder": 2,
+  "app": "MailLoop",
+  "senderName": "Youssef",
+  "contentJson": {
+    "text": "Subject: Discount Rule\n\nIf the order total is 200 EGP or more:\nApply 10%.\nOtherwise:\nNo discount.",
+    "avatar": "youssef",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 2 — Beat 3 — Boundary bug
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "beatKey": "ch1_s2_boundary_bug",
+  "beatType": "Narrative",
+  "sequenceOrder": 3,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Test:\nOrder total: 200\nOutput:\nNo discount.\n\nNadine: Boundary.\nRead the requirement again.\n200 EGP or more.",
+    "avatar": null,
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 2 — Beat 4 — Correct condition
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "beatKey": "ch1_s2_condition_fixed",
+  "beatType": "Narrative",
+  "sequenceOrder": 4,
+  "app": "LoopCode",
+  "senderName": "Mohamed",
+  "contentJson": {
+    "text": "The condition is corrected so that 200 EGP is included.\n\nOutput:\n10% discount applied.",
+    "avatar": "mohamed",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 2 — Beat 5 — Tante Layla confirms the discount
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "beatKey": "ch1_s2_tante_layla_feedback",
+  "beatType": "Narrative",
+  "sequenceOrder": 5,
+  "app": "LoopCall",
+  "senderName": "Tante Layla",
+  "contentJson": {
+    "text": "يا ابني أنا جربت السيستم\nحلو أوي\nبس عايزة حاجة\nالزبون اللي بيطلب كتير ده لازم نحبه شوية\n\nSalma: She means the discount.\nTante Layla: ما أنا قلت خصم\nMohamed: تمام\nTante Layla: ربنا يوفقك يا ابني",
+    "avatar": "tante_layla",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 2 — Consequence Beat — Boundary understanding
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "beatKey": "ch1_s2_consequence_boundary_understood",
+  "beatType": "Consequence",
+  "sequenceOrder": null,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Conditional mastery reinforced: Mohamed understands >= and boundary conditions.",
+    "avatar": null,
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false,
+  "injectPosition": "end"
+}
+
+
+# ============================================================
+# 3) SHIFT THREE — LOOPS
+# ============================================================
+
+### Create Shift 3
+POST {{baseUrl}}/api/admin/shifts
+Content-Type: application/json
+
+{
+  "shiftNumber": 3,
+  "chapterNumber": 1,
+  "title": "Loops",
+  "description": "Mohamed processes forty morning orders, discovers an off-by-one error, and prepares the system for the Grand Opening.",
+  "conceptTag": "Loops",
+  "isCapstone": false,
+  "NumberOfTasks" : 3,
+  "unlockCondition": {
+    "prerequisite_shift_id": 2,
+    "min_rank": null,
+    "required_concept": "Conditionals",
+    "min_mastery_score": 0.7
+  }
+}
+
+> {%
+client.global.set("shift3Id", response.body.shift_id);
+%}
+
+###
+
+### Shift 3 — Beat 1 — Forty orders
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_s3_forty_orders",
+  "beatType": "Narrative",
+  "sequenceOrder": 1,
+  "app": "MailLoop",
+  "senderName": "Youssef",
+  "contentJson": {
+    "text": "Subject: We have a problem.\nAttachment: Morning_Orders.txt\n\nThe file contains forty orders.\nTante Layla wants to test the system against a real morning.",
+    "avatar": "youssef",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 2 — Repeated code
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_s3_repeated_code",
+  "beatType": "Narrative",
+  "sequenceOrder": 2,
+  "app": "WhatsUpp",
+  "senderName": "Nadine",
+  "contentJson": {
+    "text": "How many times are you going to copy that?\nMohamed: Forty.\nNadine: You're joking.\nMohamed: No.\nNadine: Mohamed.",
+    "avatar": "nadine",
+    "sound_effect": "notification",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 3 — Youssef explains loops
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_s3_loop_explained",
+  "beatType": "Narrative",
+  "sequenceOrder": 3,
+  "app": "WhatsUpp",
+  "senderName": "Youssef",
+  "contentJson": {
+    "text": "You know the computer can repeat things, right?\n\nYou give it the instructions once.\nThen tell it how many times to repeat them.",
+    "avatar": "youssef",
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 4 — Off-by-one bug
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_s3_off_by_one",
+  "beatType": "Narrative",
+  "sequenceOrder": 4,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "39 orders are processed correctly.\nOne isn't.\n\nOrder 39 — Discount not applied.\n\nNadine: What's different about 39?\nMohamed: It ends before the last order.\nNadine: Classic.",
+    "avatar": null,
+    "sound_effect": "error",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 5 — Loop boundary fixed
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_s3_loop_fixed",
+  "beatType": "Narrative",
+  "sequenceOrder": 5,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "The loop boundary is fixed.\n\nOutput:\n40 / 40 orders processed\n40 / 40 discounts calculated correctly\n\nNadine: Okay. That's actually clean.",
+    "avatar": null,
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 6 — Grand Opening scheduled
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_capstone_grand_opening_scheduled",
+  "beatType": "Narrative",
+  "sequenceOrder": 6,
+  "app": "LoopCall",
+  "senderName": "Tante Layla",
+  "contentJson": {
+    "text": "LOOPCALL — TANTE LAYLA\nTante Layla: جاهزين؟\nNadine: We're ready.\nTante Layla: ربنا يستر\n\nThe system goes live.",
+    "avatar": "tante_layla",
+    "sound_effect": "call",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 7 — Live discount bug
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_capstone_live_discount_bug",
+  "beatType": "Narrative",
+  "sequenceOrder": 7,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "A customer qualifies for the discount.\n\nExpected discount: 10%\nActual discount: 0%\n\nCritical notification: Discount calculation failed.",
+    "avatar": null,
+    "sound_effect": "error",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 8 — Nadine finds the root cause
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_capstone_root_cause",
+  "beatType": "Narrative",
+  "sequenceOrder": 8,
+  "app": "WhatsUpp",
+  "senderName": "Nadine",
+  "contentJson": {
+    "text": "You're checking the discount before the entire order is finished.\n\nMohamed: So it's checking half the order.\nNadine: Exactly.\nFinish calculating the total first.\nThen check the condition.",
+    "avatar": "nadine",
+    "sound_effect": "notification",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 9 — Grand Opening succeeds
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_capstone_grand_opening_success",
+  "beatType": "Narrative",
+  "sequenceOrder": 9,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Order processed.\nTotal calculated.\nDiscount applied.\n\nRECEIPT\nSubtotal: 250 EGP\nDiscount: 25 EGP\nTotal: 225 EGP\n\nGrand Opening System: Operational.",
+    "avatar": null,
+    "sound_effect": "success",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Beat 10 — Chapter ending
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_end_promotion",
+  "beatType": "Narrative",
+  "sequenceOrder": 10,
+  "app": "MailLoop",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Subject: Congratulations — Promotion\n\nYour position at Loop has been updated.\n\nPROMOTED\nIntern → Experienced Junior\n\nNew Shift Available\nNew Side Project Task Available",
+    "avatar": null,
+    "sound_effect": "success",
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false
+}
+
+###
+
+### Shift 3 — Consequence Beat — Loop mastery
+POST {{baseUrl}}/api/admin/beats
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "beatKey": "ch1_s3_consequence_loop_mastery",
+  "beatType": "Consequence",
+  "sequenceOrder": null,
+  "app": "LoopCode",
+  "senderName": "System",
+  "contentJson": {
+    "text": "Loop mastery reinforced: Mohamed understands repetition, stopping conditions, boundaries, and off-by-one errors.",
+    "avatar": null,
+    "sound_effect": null,
+    "choices": null
+  },
+  "desktopEvent": null,
+  "delaySeconds": 0,
+  "hasChoices": false,
+  "injectPosition": "end"
+}
+
+
+# ============================================================
+# 4) CHOICES
+# ============================================================
+# The written Chapter One scenario is primarily linear and does
+# not define explicit branching choices. The following choices
+# represent admin-authored optional dialogue decisions that fit
+# the existing scenes.
+#
+# IMPORTANT:
+# CreateStoryBeat automatically creates the Consequence record
+# for a BeatType=Consequence beat, but BeatDto does NOT expose
+# ConsequenceId. Therefore the current API cannot automatically
+# wire a newly-created consequence beat into CreateChoiceDto.
+#
+# For that reason, the choice requests below intentionally use
+# ConsequenceId = null. After you expose the ConsequenceId through
+# an admin DTO/endpoint, replace null with the generated IDs.
+
+
+### Choice — Father conversation: push back
+# Optional branch derived from the Prologue.
+# POST {{baseUrl}}/api/admin/choices
+# Content-Type: application/json
+
+# [
+#   {
+#     "beatId": 0,
+#     "choiceIndex": 1,
+#     "choiceText": "Great system. Very motivating.",
+#     "tier": "Acceptable",
+#     "consequenceId": null,
+#     "immediateFeedback": "Mohamed pushes back with sarcasm."
+#   }
+# ]
+
+###
+
+### Choice — Father conversation: accept challenge
+# POST {{baseUrl}}/api/admin/choices
+# Content-Type: application/json
+
+# [
+#   {
+#     "beatId": 0,
+#     "choiceIndex": 2,
+#     "choiceText": "I'll get a job.",
+#     "tier": "Ideal",
+#     "consequenceId": null,
+#     "immediateFeedback": "Mohamed accepts the challenge without arguing."
+#   }
+# ]
+
+###
+
+### Choice — Variable lesson: reaction
+POST {{baseUrl}}/api/admin/choices
+Content-Type: application/json
+
+[
+  {
+    "beatId": {{s1Beat1Id}},
+    "choiceIndex": 1,
+    "choiceText": "Why are there so many prices to update?",
+    "tier": "Ideal",
+    "consequenceId": null,
+    "immediateFeedback": "Leads naturally into the variable explanation."
+  }
+]
+
+###
+
+### Choice — Variable lesson: ignore
+POST {{baseUrl}}/api/admin/choices
+Content-Type: application/json
+
+[
+  {
+    "beatId": {{s1Beat1Id}},
+    "choiceIndex": 1,
+    "choiceText": "I'll use variables so the prices can be changed easily later.",
+    "tier": "Ideal",
+    "consequenceId": null
+  },
+  {
+    "beatId": {{s1Beat1Id}},
+    "choiceIndex": 2,
+    "choiceText": "I'll just change them one by one.",
+    "tier": "Mistake",
+    "consequenceId": null
+  },
+  {
+    "beatId": {{s1Beat1Id}},
+    "choiceIndex": 3,
+    "choiceText": "I'll put the prices in one place so I can update them later.",
+    "tier": "Acceptable",
+    "consequenceId": null
+  },
+  {
+    "beatId": {{s1Beat1Id}},
+    "choiceIndex": 4,
+    "choiceText": "I'll start coding the menu and worry about the prices later.",
+    "tier": "Debt",
+    "consequenceId": null
+  }
+]
+
+
+# ============================================================
+# 5) PRACTICE TASKS — 3 PER SHIFT
+# ============================================================
+# The scenario gates explicitly test Variables, Conditionals,
+# and Loops. Three tasks per shift gives the gate the same
+# three-success progression described by the scenario.
+#
+# Each task contains 2 test cases.
+# Total:
+#   3 shifts
+#   9 practice tasks
+#   18 test cases
+#
+# TestCaseId is left as 0 because it is database-generated.
+# The AddPracticeTask endpoint accepts TestCases directly.
+
+
+# -------------------------
+# SHIFT 1 — VARIABLES
+# -------------------------
+
+### Practice 1.1 — Store coffee price
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "taskOrder": 1,
+  "title": "Store Coffee Price",
+  "description": "Create an integer variable named coffeePrice and print it.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Variables",
+  "difficulty": "SpacedRetrieval",
+  "maxAttempts": 0,
+  "egpReward": 20,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "Coffee - 45 EGP",
+      "isHidden": false,
+      "description": "coffeePrice should be 45."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "Coffee - 40 EGP",
+      "isHidden": true,
+      "description": "Changing the variable value should change the printed result."
+    }
+  ]
+}
+
+###
+
+### Practice 1.2 — Multiple menu prices
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "taskOrder": 2,
+  "title": "Menu Prices",
+  "description": "Store coffee, tea, and croissant prices in variables and print the menu.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Variables",
+  "difficulty": "Standard",
+  "maxAttempts": 0,
+  "egpReward": 25,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "Coffee - 45 EGP\nTea - 35 EGP\nCroissant - 40 EGP",
+      "isHidden": false,
+      "description": "Print all three menu prices."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "Coffee - 50 EGP\nTea - 30 EGP\nCroissant - 40 EGP",
+      "isHidden": true,
+      "description": "The solution should use variables rather than hardcoded output."
+    }
+  ]
+}
+
+###
+
+### Practice 1.3 — Update one value
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift1Id}},
+  "taskOrder": 3,
+  "title": "Update the Price",
+  "description": "Use a variable so the coffee price can be changed in one place.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int coffeePrice = 45;\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Variables",
+  "difficulty": "Challenge",
+  "maxAttempts": 0,
+  "egpReward": 30,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "45",
+      "isHidden": false,
+      "description": "Print the current coffeePrice."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "55",
+      "isHidden": true,
+      "description": "The value can be changed without rewriting the print statement."
+    }
+  ]
+}
+
+
+# -------------------------
+# SHIFT 2 — CONDITIONALS
+# -------------------------
+
+### Practice 2.1 — Discount eligibility
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "taskOrder": 1,
+  "title": "Discount Eligibility",
+  "description": "Apply a 10% discount when the order total is 200 EGP or more.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int total = 200;\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Conditionals",
+  "difficulty": "SpacedRetrieval",
+  "maxAttempts": 0,
+  "egpReward": 25,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "200",
+      "expectedOutput": "10% discount applied",
+      "isHidden": false,
+      "description": "Exactly 200 qualifies."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "199",
+      "expectedOutput": "No discount",
+      "isHidden": true,
+      "description": "Below 200 does not qualify."
+    }
+  ]
+}
+
+###
+
+### Practice 2.2 — Compare totals
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "taskOrder": 2,
+  "title": "Compare Order Total",
+  "description": "Use if/else to determine whether the customer qualifies for the discount.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int total;\n    scanf(\"%d\", &total);\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Conditionals",
+  "difficulty": "Standard",
+  "maxAttempts": 0,
+  "egpReward": 30,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "250",
+      "expectedOutput": "Discount: 25 EGP",
+      "isHidden": false,
+      "description": "250 qualifies and receives 10%."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "150",
+      "expectedOutput": "Discount: 0 EGP",
+      "isHidden": true,
+      "description": "150 does not qualify."
+    }
+  ]
+}
+
+###
+
+### Practice 2.3 — Boundary condition
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift2Id}},
+  "taskOrder": 3,
+  "title": "Fix the Boundary",
+  "description": "Correct the condition so 200 EGP and every larger total receives the discount.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int total;\n    scanf(\"%d\", &total);\n    if (total > 200) {\n        printf(\"10%% discount applied\");\n    } else {\n        printf(\"No discount\");\n    }\n    return 0;\n}",
+  "conceptTag": "Conditionals",
+  "difficulty": "Challenge",
+  "maxAttempts": 0,
+  "egpReward": 35,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "200",
+      "expectedOutput": "10% discount applied",
+      "isHidden": false,
+      "description": "Boundary must be inclusive."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "201",
+      "expectedOutput": "10% discount applied",
+      "isHidden": true,
+      "description": "Values above the boundary also qualify."
+    }
+  ]
+}
+
+
+# -------------------------
+# SHIFT 3 — LOOPS
+# -------------------------
+
+### Practice 3.1 — Repeat order processing
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "taskOrder": 1,
+  "title": "Process Multiple Orders",
+  "description": "Use a loop to process the required number of orders without copying the same code repeatedly.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Loops",
+  "difficulty": "SpacedRetrieval",
+  "maxAttempts": 0,
+  "egpReward": 30,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "3",
+      "expectedOutput": "Order 1\nOrder 2\nOrder 3",
+      "isHidden": false,
+      "description": "Process three orders."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "5",
+      "expectedOutput": "Order 1\nOrder 2\nOrder 3\nOrder 4\nOrder 5",
+      "isHidden": true,
+      "description": "The loop should adapt to the requested count."
+    }
+  ]
+}
+
+###
+
+### Practice 3.2 — Loop boundaries
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "taskOrder": 2,
+  "title": "Process All Orders",
+  "description": "Make sure the loop processes every order and does not stop one order early.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int n;\n    scanf(\"%d\", &n);\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Loops",
+  "difficulty": "Standard",
+  "maxAttempts": 0,
+  "egpReward": 35,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "40",
+      "expectedOutput": "40 / 40 orders processed",
+      "isHidden": false,
+      "description": "All forty orders must be processed."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "41",
+      "expectedOutput": "41 / 41 orders processed",
+      "isHidden": true,
+      "description": "The loop should not be hardcoded to 40."
+    }
+  ]
+}
+
+###
+
+### Practice 3.3 — Combine loop + conditional
+POST {{baseUrl}}/api/admin/practice/tasks
+Content-Type: application/json
+
+{
+  "shiftId": {{shift3Id}},
+  "taskOrder": 3,
+  "title": "Calculate Discounts for Orders",
+  "description": "Loop through order totals and apply the 10% discount to totals of 200 EGP or more.",
+  "starterCode": "#include <stdio.h>\n\nint main() {\n    int totals[] = {150, 200, 250};\n    int count = 3;\n    // Write your solution here\n    return 0;\n}",
+  "conceptTag": "Loops",
+  "difficulty": "Challenge",
+  "maxAttempts": 0,
+  "egpReward": 45,
+  "testCases": [
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "150 -> 0\n200 -> 20\n250 -> 25",
+      "isHidden": false,
+      "description": "Combine looping with the chapter discount condition."
+    },
+    {
+      "testCaseId": 0,
+      "taskId": null,
+      "sideTaskId": null,
+      "testInput": "",
+      "expectedOutput": "100 -> 0\n199 -> 0\n200 -> 20\n300 -> 30",
+      "isHidden": true,
+      "description": "Boundary and loop logic must both be correct."
+    }
+  ]
+}
+
+
+# ============================================================
+# 6) ADMIN VERIFICATION / READS
+# ============================================================
+# These are read-only admin endpoints useful after inserting
+# the chapter content.
+
+### Get all shifts
+GET {{baseUrl}}/api/admin/shifts
 Accept: application/json
 
 ###
+
+### Get Shift 1 with narrative + consequence beats
+GET {{baseUrl}}/api/admin/shifts/{{shift1Id}}
+Accept: application/json
+
+###
+
+### Get Shift 2 with narrative + consequence beats
+GET {{baseUrl}}/api/admin/shifts/{{shift2Id}}
+Accept: application/json
+
+###
+
+### Get Shift 3 with narrative + consequence beats
+GET {{baseUrl}}/api/admin/shifts/{{shift3Id}}
+Accept: application/json
+
+###
+
+### Get practice tasks
+GET {{baseUrl}}/api/admin/practice/tasks
+Accept: application/json

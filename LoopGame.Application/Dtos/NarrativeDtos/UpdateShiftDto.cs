@@ -12,6 +12,7 @@ public class UpdateShiftDto
     public string? Title         { get; set; }
     public Concept ConceptTag { get; set; }
     public string? Description   { get; set; }
+    public int? NumberOfTasks { get; set; }
     public bool?   IsCapstone    { get; set; }
 
     /// <summary>

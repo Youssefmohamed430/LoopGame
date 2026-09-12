@@ -88,8 +88,8 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             await _userManager.AddToRoleAsync(user, "Player");
 
             await _unitOfWork.GetRepository<Player>().AddAsync(profile);
-            await _economyService.InitializePlayerEconomyAsync(user.Id);
             await _unitOfWork.SaveAsync();
+            await _economyService.InitializePlayerEconomyAsync(user.Id);
 
             var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = Roles.Player.ToString() };
             var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
