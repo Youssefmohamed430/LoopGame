@@ -57,7 +57,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             //var userToReturn = _mapper.Map<UserToReturnDto>(user);
             var userToReturn = user.Adapt<UserToReturnDto>(); 
             userToReturn.AccessToken = accessTokenResult.Value;
-            userToReturn.RefreshToken = refreshTokenResult.Value.TokenHash; // Assuming TokenHash is returned as the string or hash here
+            userToReturn.RefreshToken = refreshTokenResult.Value.Token; 
             userToReturn.AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
             
             return Result.Success(userToReturn);
@@ -100,7 +100,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             if (accessTokenResult.IsSuccess && refreshTokenResult.IsSuccess)
             {
                 userToReturn.AccessToken = accessTokenResult.Value;
-                userToReturn.RefreshToken = refreshTokenResult.Value.TokenHash;
+                userToReturn.RefreshToken = refreshTokenResult.Value.Token;
             }
             
             userToReturn.AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
@@ -143,7 +143,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             {
                 Email = request.Email,
                 Code = code,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(15),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
                 CreatedAt = DateTime.UtcNow,
                 IsUsed = false,
                 AttemptCount = 0
@@ -152,7 +152,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             await _unitOfWork.GetRepository<OtpRecord>().AddAsync(otpRecord);
             await _unitOfWork.SaveAsync();
 
-            await _emailService.SendEmail(request.Email, code, "Password Reset");
+            await _emailService.SendEmail(request.Email, code, "PasswordReset");
 
             return Result.Success();
         }
@@ -173,7 +173,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 return Result.Failure(AuthErrors.OtpExpired());
 
             if (otpRecord.AttemptCount >= 5)
-                return Result.Failure(AuthErrors.InvalidOtp());
+                return Result.Failure(AuthErrors.InvalidOtpAttempts());
 
             if (otpRecord.Code != request.Code)
             {

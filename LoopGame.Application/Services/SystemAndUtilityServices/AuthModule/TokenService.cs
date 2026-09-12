@@ -50,7 +50,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
         public async Task<Result<GeneratedRefreshTokenDto>> GenerateRefreshTokenAsync(int userId)
         {
             var tokenExist = await _unitOfWork.GetRepository<RefreshToken>()
-                .FindAsync(t => t.UserId == userId && t.ExpiresAt > DateTime.UtcNow);
+                .FindAsync(t => t.UserId == userId && t.ExpiresAt > DateTime.UtcNow && t.RevokedAt == null);
             if (tokenExist != null)
             {
                 tokenExist.RevokedAt = DateTime.UtcNow;
