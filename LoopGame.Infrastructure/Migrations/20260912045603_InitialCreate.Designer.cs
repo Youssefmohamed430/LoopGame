@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LoopGame.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260908084022_HandleTestCaseEntity")]
-    partial class HandleTestCaseEntity
+    [Migration("20260912045603_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -51,9 +51,6 @@ namespace LoopGame.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
-
-                    b.Property<Guid?>("SessionId")
-                        .HasColumnType("uuid");
 
                     b.Property<string>("Tier")
                         .HasColumnType("varchar(20)");
@@ -239,6 +236,9 @@ namespace LoopGame.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AttemptId"));
 
                     b.Property<bool>("HintUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCompleted")
                         .HasColumnType("boolean");
 
                     b.Property<int>("PlayerId")
@@ -789,6 +789,12 @@ namespace LoopGame.Infrastructure.Migrations
                     b.Property<int>("ChapterNumber")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ConceptTag")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(50)")
+                        .HasDefaultValue("Basics");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
@@ -800,6 +806,9 @@ namespace LoopGame.Infrastructure.Migrations
 
                     b.Property<bool>("IsCapstone")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("NumberOfTasks")
+                        .HasColumnType("integer");
 
                     b.Property<int>("ShiftNumber")
                         .HasColumnType("integer");
@@ -1026,10 +1035,8 @@ namespace LoopGame.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SaveId"));
 
-                    b.Property<string>("DesktopState")
-                        .IsRequired()
-                        .HasColumnType("jsonb")
-                        .HasColumnName("desktop_state");
+                    b.Property<int>("BeatId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("PlayerId")
                         .HasColumnType("integer");
@@ -1043,19 +1050,13 @@ namespace LoopGame.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<byte>("SlotNumber")
-                        .HasColumnType("smallint");
-
                     b.HasKey("SaveId");
 
-                    b.HasIndex("PlayerId", "SlotNumber")
-                        .IsUnique()
-                        .HasDatabaseName("UQ_PlayerSave");
+                    b.HasIndex("BeatId");
 
-                    b.ToTable("PlayerSave", "public", t =>
-                        {
-                            t.HasCheckConstraint("CHK_PlayerSave_SlotNumber", "\"SlotNumber\" IN (1, 2, 3)");
-                        });
+                    b.HasIndex("PlayerId");
+
+                    b.ToTable("PlayerSave", "public");
                 });
 
             modelBuilder.Entity("LoopGame.Domain.Entities.Player.PlayerShiftProgress", b =>
@@ -1868,11 +1869,19 @@ namespace LoopGame.Infrastructure.Migrations
 
             modelBuilder.Entity("LoopGame.Domain.Entities.Player.PlayerSave", b =>
                 {
+                    b.HasOne("LoopGame.Domain.Entities.Narrative.StoryBeat", "Beat")
+                        .WithMany("PlayerSaves")
+                        .HasForeignKey("BeatId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("LoopGame.Domain.Entities.Player.Player", "Player")
                         .WithMany("PlayerSaves")
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Beat");
 
                     b.Navigation("Player");
                 });
@@ -2041,6 +2050,8 @@ namespace LoopGame.Infrastructure.Migrations
                     b.Navigation("Choices");
 
                     b.Navigation("Consequence");
+
+                    b.Navigation("PlayerSaves");
                 });
 
             modelBuilder.Entity("LoopGame.Domain.Entities.Player.Player", b =>

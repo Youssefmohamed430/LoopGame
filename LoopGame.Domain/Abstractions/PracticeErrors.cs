@@ -61,4 +61,9 @@ public static class PracticeErrors
 
     public static readonly Error TestCaseDuplicate =
         new("TestCase.TestCaseDuplicate", "TestCase Cannot be duplicated at [ PracticeTask and SideTask ]");
+
+    public static readonly Error DuplicateCompletedTask =
+        new("TaskCompleted.DuplicateCompletedTask", "TaskCompleted Cannot be duplicated Complete.");
+
+
 }

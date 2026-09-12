@@ -25,6 +25,7 @@ public class AssessmentServiceTests : IDisposable
     private readonly AppDbContext _db;
     private readonly Mock<IUnitOfWork> _uow = new();
     private readonly AssessmentService _assessmentService;
+    private readonly Mock<IEconomyService> _economyService = new();
 
     public AssessmentServiceTests()
     {
@@ -250,9 +251,11 @@ public class AssessmentServiceTests : IDisposable
             executionMock.Object,
             new PracticeTierCalculationPolicy(),
             new PracticeAttemptService(_uow.Object),
-            new ProgressionService(_uow.Object),
+            new ProgressionService(_uow.Object, _economyService.Object),
             publisherMock.Object,
-            schedulerMock.Object);
+            schedulerMock.Object,
+            _economyService.Object
+            );
 
         var submitResult = await practiceService.SubmitCode(PlayerId, new CodeSubmitRequestDto
         {
@@ -333,9 +336,10 @@ public class AssessmentServiceTests : IDisposable
             executionMock.Object,
             new PracticeTierCalculationPolicy(),
             new PracticeAttemptService(_uow.Object),
-            new ProgressionService(_uow.Object),
+            new ProgressionService(_uow.Object, _economyService.Object),
             publisherMock.Object,
-            schedulerMock.Object);
+            schedulerMock.Object,
+            _economyService.Object);
 
         var submitResult = await practiceService.SubmitCode(PlayerId, new CodeSubmitRequestDto
         {

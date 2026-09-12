@@ -12,6 +12,7 @@ public class Shift
     public string    Title           { get; set; } = string.Empty;
     public string?   Description     { get; set; }
     public Concept   ConceptTag      { get; set; }
+    public int       NumberOfTasks   { get; set; }
     public bool      IsCapstone      { get; set; } = false;
 
     /// <summary>Stored as JSON in the DB. Null means no unlock gate.</summary>

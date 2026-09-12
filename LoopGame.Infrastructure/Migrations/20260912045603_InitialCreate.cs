@@ -16,22 +16,6 @@ namespace LoopGame.Infrastructure.Migrations
                 name: "public");
 
             migrationBuilder.CreateTable(
-                name: "ApplicationRole",
-                schema: "public",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    NormalizedName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ApplicationRole", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ApplicationUser",
                 schema: "public",
                 columns: table => new
@@ -63,6 +47,60 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AspNetRoles",
+                schema: "public",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetRoles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OtpRecords",
+                schema: "public",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Email = table.Column<string>(type: "text", nullable: false),
+                    Code = table.Column<string>(type: "text", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    AttemptCount = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OtpRecords", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SheetFiles",
+                schema: "public",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FileName = table.Column<string>(type: "text", nullable: false),
+                    Concept = table.Column<int>(type: "integer", nullable: false),
+                    S3Key = table.Column<string>(type: "text", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    UploadedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UploadedByUserId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SheetFiles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Shift",
                 schema: "public",
                 columns: table => new
@@ -73,6 +111,8 @@ namespace LoopGame.Infrastructure.Migrations
                     ChapterNumber = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    ConceptTag = table.Column<string>(type: "varchar(50)", nullable: false, defaultValue: "Basics"),
+                    NumberOfTasks = table.Column<int>(type: "integer", nullable: false),
                     IsCapstone = table.Column<bool>(type: "boolean", nullable: false),
                     unlock_condition = table.Column<string>(type: "jsonb", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
@@ -131,29 +171,6 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ApplicationRoleClaim",
-                schema: "public",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RoleId = table.Column<int>(type: "integer", nullable: false),
-                    ClaimType = table.Column<string>(type: "text", nullable: true),
-                    ClaimValue = table.Column<string>(type: "text", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ApplicationRoleClaim", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ApplicationRoleClaim_ApplicationRole_RoleId",
-                        column: x => x.RoleId,
-                        principalSchema: "public",
-                        principalTable: "ApplicationRole",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "ApplicationUserClaim",
                 schema: "public",
                 columns: table => new
@@ -191,33 +208,6 @@ namespace LoopGame.Infrastructure.Migrations
                     table.PrimaryKey("PK_ApplicationUserLogin", x => new { x.LoginProvider, x.ProviderKey });
                     table.ForeignKey(
                         name: "FK_ApplicationUserLogin_ApplicationUser_UserId",
-                        column: x => x.UserId,
-                        principalSchema: "public",
-                        principalTable: "ApplicationUser",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "ApplicationUserRole",
-                schema: "public",
-                columns: table => new
-                {
-                    UserId = table.Column<int>(type: "integer", nullable: false),
-                    RoleId = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ApplicationUserRole", x => new { x.UserId, x.RoleId });
-                    table.ForeignKey(
-                        name: "FK_ApplicationUserRole_ApplicationRole_RoleId",
-                        column: x => x.RoleId,
-                        principalSchema: "public",
-                        principalTable: "ApplicationRole",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_ApplicationUserRole_ApplicationUser_UserId",
                         column: x => x.UserId,
                         principalSchema: "public",
                         principalTable: "ApplicationUser",
@@ -275,12 +265,62 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ApplicationRoleClaim",
+                schema: "public",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    RoleId = table.Column<int>(type: "integer", nullable: false),
+                    ClaimType = table.Column<string>(type: "text", nullable: true),
+                    ClaimValue = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApplicationRoleClaim", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ApplicationRoleClaim_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalSchema: "public",
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ApplicationUserRole",
+                schema: "public",
+                columns: table => new
+                {
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    RoleId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApplicationUserRole", x => new { x.UserId, x.RoleId });
+                    table.ForeignKey(
+                        name: "FK_ApplicationUserRole_ApplicationUser_UserId",
+                        column: x => x.UserId,
+                        principalSchema: "public",
+                        principalTable: "ApplicationUser",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ApplicationUserRole_AspNetRoles_RoleId",
+                        column: x => x.RoleId,
+                        principalSchema: "public",
+                        principalTable: "AspNetRoles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Player",
                 schema: "public",
                 columns: table => new
                 {
                     PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    StudentIdHash = table.Column<string>(type: "character(64)", nullable: false),
+                    PlayerName = table.Column<string>(type: "text", nullable: false),
                     Rank = table.Column<string>(type: "varchar(30)", nullable: false, defaultValue: "Intern"),
                     CurrentShiftId = table.Column<int>(type: "integer", nullable: true),
                     TotalPlayTimeSec = table.Column<int>(type: "integer", nullable: false),
@@ -420,7 +460,6 @@ namespace LoopGame.Infrastructure.Migrations
                     ConceptTag = table.Column<string>(type: "varchar(50)", nullable: true),
                     Tier = table.Column<string>(type: "varchar(20)", nullable: true),
                     Payload = table.Column<string>(type: "jsonb", nullable: true),
-                    SessionId = table.Column<Guid>(type: "uuid", nullable: true),
                     RecordedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
                 },
                 constraints: table =>
@@ -567,32 +606,6 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PlayerSave",
-                schema: "public",
-                columns: table => new
-                {
-                    SaveId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PlayerId = table.Column<int>(type: "integer", nullable: false),
-                    SlotNumber = table.Column<byte>(type: "smallint", nullable: false),
-                    SaveLabel = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
-                    desktop_state = table.Column<string>(type: "jsonb", nullable: false),
-                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PlayerSave", x => x.SaveId);
-                    table.CheckConstraint("CHK_PlayerSave_SlotNumber", "\"SlotNumber\" IN (1, 2, 3)");
-                    table.ForeignKey(
-                        name: "FK_PlayerSave_Player_PlayerId",
-                        column: x => x.PlayerId,
-                        principalSchema: "public",
-                        principalTable: "Player",
-                        principalColumn: "PlayerId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "PlayerShiftProgress",
                 schema: "public",
                 columns: table => new
@@ -602,6 +615,8 @@ namespace LoopGame.Infrastructure.Migrations
                     PlayerId = table.Column<int>(type: "integer", nullable: false),
                     ShiftId = table.Column<int>(type: "integer", nullable: false),
                     Status = table.Column<string>(type: "varchar(20)", nullable: false, defaultValue: "in_progress"),
+                    IsGateCleared = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    GateClearedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     StartedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     GateAttempts = table.Column<short>(type: "smallint", nullable: false, defaultValue: (short)0)
@@ -692,6 +707,7 @@ namespace LoopGame.Infrastructure.Migrations
                     TaskId = table.Column<int>(type: "integer", nullable: false),
                     SubmittedCode = table.Column<string>(type: "text", nullable: false),
                     Tier = table.Column<string>(type: "varchar(20)", nullable: false),
+                    IsCompleted = table.Column<bool>(type: "boolean", nullable: false),
                     TestResults = table.Column<string>(type: "jsonb", nullable: false),
                     TimeSpentSec = table.Column<int>(type: "integer", nullable: false),
                     HintUsed = table.Column<bool>(type: "boolean", nullable: false),
@@ -718,40 +734,6 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TestCase",
-                schema: "public",
-                columns: table => new
-                {
-                    TestCaseId = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TaskId = table.Column<int>(type: "integer", nullable: true),
-                    TemplateId = table.Column<int>(type: "integer", nullable: true),
-                    TestInput = table.Column<string>(type: "text", nullable: false),
-                    ExpectedOutput = table.Column<string>(type: "text", nullable: false),
-                    IsHidden = table.Column<bool>(type: "boolean", nullable: false),
-                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TestCase", x => x.TestCaseId);
-                    table.CheckConstraint("CHK_TestCase_Parent", "(\"TaskId\" IS NOT NULL AND \"TemplateId\" IS NULL) OR (\"TaskId\" IS NULL AND \"TemplateId\" IS NOT NULL)");
-                    table.ForeignKey(
-                        name: "FK_TestCase_PracticeTask_TaskId",
-                        column: x => x.TaskId,
-                        principalSchema: "public",
-                        principalTable: "PracticeTask",
-                        principalColumn: "TaskId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_TestCase_SideTaskTemplate_TemplateId",
-                        column: x => x.TemplateId,
-                        principalSchema: "public",
-                        principalTable: "SideTaskTemplate",
-                        principalColumn: "TemplateId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Consequence",
                 schema: "public",
                 columns: table => new
@@ -775,6 +757,37 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PlayerSave",
+                schema: "public",
+                columns: table => new
+                {
+                    SaveId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PlayerId = table.Column<int>(type: "integer", nullable: false),
+                    BeatId = table.Column<int>(type: "integer", nullable: false),
+                    SaveLabel = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    SavedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PlayerSave", x => x.SaveId);
+                    table.ForeignKey(
+                        name: "FK_PlayerSave_Player_PlayerId",
+                        column: x => x.PlayerId,
+                        principalSchema: "public",
+                        principalTable: "Player",
+                        principalColumn: "PlayerId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PlayerSave_StoryBeat_BeatId",
+                        column: x => x.BeatId,
+                        principalSchema: "public",
+                        principalTable: "StoryBeat",
+                        principalColumn: "BeatId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PlayerSideTask",
                 schema: "public",
                 columns: table => new
@@ -788,15 +801,15 @@ namespace LoopGame.Infrastructure.Migrations
                     ResolvedDescription = table.Column<string>(type: "text", nullable: false),
                     FilledSlots = table.Column<string>(type: "jsonb", nullable: false),
                     EgpReward = table.Column<decimal>(type: "numeric(8,2)", precision: 8, scale: 2, nullable: false),
+                    Difficulty = table.Column<int>(type: "integer", nullable: false, defaultValue: 1),
                     Status = table.Column<string>(type: "varchar(20)", nullable: false, defaultValue: "active"),
                     AssignedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
-                    DeadlineAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     CompletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PlayerSideTask", x => x.SideTaskId);
-                    table.CheckConstraint("CHK_PlayerSideTask_Status", "\"Status\" IN ('active', 'submitted', 'abandoned', 'expired')");
+                    table.CheckConstraint("CHK_PlayerSideTask_Status", "\"Status\" IN ('active', 'queued', 'submitted', 'abandoned', 'expired')");
                     table.ForeignKey(
                         name: "FK_PlayerSideTask_AiGenerationLog_AiLogId",
                         column: x => x.AiLogId,
@@ -953,6 +966,40 @@ namespace LoopGame.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TestCase",
+                schema: "public",
+                columns: table => new
+                {
+                    TestCaseId = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    TaskId = table.Column<int>(type: "integer", nullable: true),
+                    SideTaskId = table.Column<int>(type: "integer", nullable: true),
+                    TestInput = table.Column<string>(type: "text", nullable: false),
+                    ExpectedOutput = table.Column<string>(type: "text", nullable: false),
+                    IsHidden = table.Column<bool>(type: "boolean", nullable: false),
+                    Description = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TestCase", x => x.TestCaseId);
+                    table.CheckConstraint("CHK_TestCase_Parent", "(\"TaskId\" IS NOT NULL AND \"SideTaskId\" IS NULL) OR (\"TaskId\" IS NULL AND \"SideTaskId\" IS NOT NULL)");
+                    table.ForeignKey(
+                        name: "FK_TestCase_PlayerSideTask_SideTaskId",
+                        column: x => x.SideTaskId,
+                        principalSchema: "public",
+                        principalTable: "PlayerSideTask",
+                        principalColumn: "SideTaskId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TestCase_PracticeTask_TaskId",
+                        column: x => x.TaskId,
+                        principalSchema: "public",
+                        principalTable: "PracticeTask",
+                        principalColumn: "TaskId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PlayerChoice",
                 schema: "public",
                 columns: table => new
@@ -1011,13 +1058,6 @@ namespace LoopGame.Infrastructure.Migrations
                 column: "ExpiresAt");
 
             migrationBuilder.CreateIndex(
-                name: "RoleNameIndex",
-                schema: "public",
-                table: "ApplicationRole",
-                column: "NormalizedName",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_ApplicationRoleClaim_RoleId",
                 schema: "public",
                 table: "ApplicationRoleClaim",
@@ -1053,6 +1093,13 @@ namespace LoopGame.Infrastructure.Migrations
                 schema: "public",
                 table: "ApplicationUserRole",
                 column: "RoleId");
+
+            migrationBuilder.CreateIndex(
+                name: "RoleNameIndex",
+                schema: "public",
+                table: "AspNetRoles",
+                column: "NormalizedName",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Assessment_Player_Type",
@@ -1130,13 +1177,6 @@ namespace LoopGame.Infrastructure.Migrations
                 column: "CurrentShiftId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Player_StudentIdHash",
-                schema: "public",
-                table: "Player",
-                column: "StudentIdHash",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Player_User",
                 schema: "public",
                 table: "Player",
@@ -1182,11 +1222,16 @@ namespace LoopGame.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "UQ_PlayerSave",
+                name: "IX_PlayerSave_BeatId",
                 schema: "public",
                 table: "PlayerSave",
-                columns: new[] { "PlayerId", "SlotNumber" },
-                unique: true);
+                column: "BeatId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlayerSave_PlayerId",
+                schema: "public",
+                table: "PlayerSave",
+                column: "PlayerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlayerShiftProgress_ShiftId",
@@ -1311,22 +1356,30 @@ namespace LoopGame.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_TestCase_SideTaskId",
+                schema: "public",
+                table: "TestCase",
+                column: "SideTaskId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_TestCase_TaskId",
                 schema: "public",
                 table: "TestCase",
                 column: "TaskId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TestCase_TemplateId",
-                schema: "public",
-                table: "TestCase",
-                column: "TemplateId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Transaction_Player_Date",
                 schema: "public",
                 table: "Transaction",
                 columns: new[] { "PlayerId", "CreatedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "UX_Transaction_SalaryPerShift",
+                schema: "public",
+                table: "Transaction",
+                columns: new[] { "PlayerId", "ReferenceId" },
+                unique: true,
+                filter: "\"transaction_type\" = 'salary' AND \"ReferenceId\" IS NOT NULL");
         }
 
         /// <inheritdoc />
@@ -1369,6 +1422,10 @@ namespace LoopGame.Infrastructure.Migrations
                 schema: "public");
 
             migrationBuilder.DropTable(
+                name: "OtpRecords",
+                schema: "public");
+
+            migrationBuilder.DropTable(
                 name: "PlayerChoice",
                 schema: "public");
 
@@ -1401,6 +1458,10 @@ namespace LoopGame.Infrastructure.Migrations
                 schema: "public");
 
             migrationBuilder.DropTable(
+                name: "SheetFiles",
+                schema: "public");
+
+            migrationBuilder.DropTable(
                 name: "SideTaskHint",
                 schema: "public");
 
@@ -1417,7 +1478,7 @@ namespace LoopGame.Infrastructure.Migrations
                 schema: "public");
 
             migrationBuilder.DropTable(
-                name: "ApplicationRole",
+                name: "AspNetRoles",
                 schema: "public");
 
             migrationBuilder.DropTable(

@@ -11,6 +11,7 @@ public class PracticeAttempt
     public int        TaskId         { get; set; }
     public string     SubmittedCode  { get; set; } = string.Empty;
     public ChoiceTier Tier           { get; set; }
+    public bool IsCompleted { get; set; } = false;
 
     /// <summary>JSON array of TestCaseResult records.</summary>
     public string     TestResults    { get; set; } = "[]";

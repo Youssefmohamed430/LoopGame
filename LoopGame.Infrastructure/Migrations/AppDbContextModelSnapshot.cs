@@ -49,9 +49,6 @@ namespace LoopGame.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<Guid?>("SessionId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Tier")
                         .HasColumnType("varchar(20)");
 
@@ -236,6 +233,9 @@ namespace LoopGame.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AttemptId"));
 
                     b.Property<bool>("HintUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCompleted")
                         .HasColumnType("boolean");
 
                     b.Property<int>("PlayerId")
@@ -803,6 +803,9 @@ namespace LoopGame.Infrastructure.Migrations
 
                     b.Property<bool>("IsCapstone")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("NumberOfTasks")
+                        .HasColumnType("integer");
 
                     b.Property<int>("ShiftNumber")
                         .HasColumnType("integer");
