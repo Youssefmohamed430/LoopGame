@@ -11,7 +11,7 @@ namespace LoopGame.Controllers;
 
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "admin")]
 [Route("api/admin")]
 public class AdminController(IAdminService _adminService ) : ControllerBase
 {
@@ -19,7 +19,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
 
     [HttpPost("sheets/upload")]
     [Consumes("multipart/form-data")]
-    public async Task<ActionResult> UploadSheet([FromForm] IFormFile  file,[FromForm] Concept concept)
+    public async Task<ActionResult> UploadSheet([FromForm] IFormFile  file,[FromForm] string concept)
     {
         if (file is null || file.Length == 0)
             return BadRequest(new {message = "File is required."});
@@ -30,6 +30,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
             return BadRequest(new{message = "Only Word and PDF files are allowed."});
 
         var adminId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
 
         var result = await _adminService.UploadAsync(concept, adminId, file);
 
@@ -43,7 +44,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
     }
 
     [HttpGet("sheets/list/{concept}")]
-    public async Task<ActionResult> ListUploadedFiles(Concept concept)
+    public async Task<ActionResult> ListUploadedFiles(string concept)
     {
         var result = await _adminService.ListUploadedFilesAsync(concept);
 
@@ -68,7 +69,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
         if (result.IsFailure)
             return BadRequest(result);
 
-        return Ok(result);
+        return Ok(result.Value);
     }
 
     [HttpGet("students/{playerId}")]
@@ -79,7 +80,7 @@ public class AdminController(IAdminService _adminService ) : ControllerBase
         if (result.IsFailure)
             return BadRequest(result);
 
-        return Ok(result);
+        return Ok(result.Value);
     }
 
 

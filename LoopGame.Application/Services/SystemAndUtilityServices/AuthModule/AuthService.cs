@@ -46,8 +46,10 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
             if (!isPasswordValid)
                 return AuthErrors.InvalidCredentials();
-
-            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = Roles.Player.ToString() };
+            var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault();
+            if (role == null)
+                return Result.Failure<UserToReturnDto>(AuthErrors.UserHasNoRole());
+            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = role };
             var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
             var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
 
@@ -91,7 +93,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             await _unitOfWork.SaveAsync();
             await _economyService.InitializePlayerEconomyAsync(user.Id);
 
-            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id, Role = Roles.Player.ToString() };
+            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id };
             var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
             var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
 

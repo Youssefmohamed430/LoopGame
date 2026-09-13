@@ -15,6 +15,5 @@ namespace LoopGame.Application.Dtos.AuthServiceDtos
         public DateTime AccessTokenExpiresAt { get; set; }
         public string AccessToken { get; set; } = null!;
         public string RefreshToken { get; set; } = null!;
-        public Roles Role { get; set; } 
     }
 }
