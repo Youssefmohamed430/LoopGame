@@ -41,7 +41,7 @@ public static class DependencyInjection
         services.AddHttpClient<ICodeExecutionService, CodeExecutionService>((sp, client) =>
         {
             var cfg = configuration ?? sp.GetRequiredService<IConfiguration>();
-            var baseUrl = cfg["CodeRunner:BaseUrl"] ?? "http://localhost:5000";
+            var baseUrl = cfg["CodeRunner:BaseUrl"] ?? "http://localhost:5074";
             client.BaseAddress = new Uri(baseUrl);
         });
 

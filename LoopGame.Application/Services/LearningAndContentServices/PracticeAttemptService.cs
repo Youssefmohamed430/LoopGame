@@ -28,7 +28,8 @@ public sealed class PracticeAttemptService(IUnitOfWork _uow) : IPracticeAttemptS
             Tier          = tier,
             TestResults   = JsonSerializer.Serialize(testResults),
             HintUsed      = code.HintUsed,
-            TimeSpentSec  = code.TimeSpentSec
+            TimeSpentSec  = code.TimeSpentSec,
+            IsCompleted = tier == ChoiceTier.Ideal || tier == ChoiceTier.Acceptable ?  true : false,
         };
 
         await _uow.GetRepository<PracticeAttempt>().AddAsync(attempt);

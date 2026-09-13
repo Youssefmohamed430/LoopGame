@@ -13,6 +13,8 @@ public interface INarrativeService
     /// </summary>
     Task<Result<NarrativeFlowDto>> StartShift(int playerId, int shiftId);
     Task<Result<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId);
+    Task<Result<object>> EndShift(int playerId, int shiftId);
+    
 
     // ── Shift management (Admin) ──────────────────────────────────────────────
 

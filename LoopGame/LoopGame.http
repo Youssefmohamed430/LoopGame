@@ -446,7 +446,7 @@ POST {{baseUrl}}/api/admin/beats
 Content-Type: application/json
 
 {
-  "shiftId": {{shift3Id}},
+  "shiftId": 3,
   "beatKey": "ch1_s3_forty_orders",
   "beatType": "Narrative",
   "sequenceOrder": 1,
