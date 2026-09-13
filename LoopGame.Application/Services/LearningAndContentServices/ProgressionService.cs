@@ -28,17 +28,14 @@ public sealed class ProgressionService(IUnitOfWork _uow, IEconomyService _econom
         progress.GateAttempts++;
 
         bool isCorrect = tier == ChoiceTier.Ideal || tier == ChoiceTier.Acceptable;
+        
         var tasksCompleted = _uow.GetRepository<PracticeAttempt>()
             .FindAll(pa =>
                 pa.PlayerId == progress.PlayerId &&
-                pa.Task.ShiftId == progress.ShiftId)
-            .GroupBy(pa => pa.TaskId)
-            .Select(g => new
-            {
-                TaskId = g.Key,
-                CompletedAttempt = g.FirstOrDefault(pa => pa.IsCompleted)
-            })
-            .Where(x => x.CompletedAttempt != null)
+                pa.Task.ShiftId == progress.ShiftId &&
+                pa.IsCompleted)
+            .Select(pa => pa.TaskId)
+            .Distinct()
             .ToList();
 
         if (isCorrect && !progress.IsGateCleared)
@@ -46,7 +43,6 @@ public sealed class ProgressionService(IUnitOfWork _uow, IEconomyService _econom
             if (tasksCompleted.Count() == progress.Shift.NumberOfTasks)
             {
 
-                // First passing attempt clears the gate.
                 progress.IsGateCleared  = true;
                 progress.GateClearedAt  = DateTime.UtcNow;
                 progress.Status         = ShiftProgressStatus.Completed;
