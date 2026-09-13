@@ -6,6 +6,7 @@ namespace LoopGame.Application.IServices.SystemAndUtilityServices
     {
         Task<Result<UserToReturnDto>> RegisterAsync(RegisterDto request);
         Task<Result<UserToReturnDto>> LoginAsync(LoginDto request);
+        Task<Result<AdminDto>> CreateAdminAsync(RegisterDto request); 
         Task<Result> ForgotPasswordAsync(ForgotPasswordRequest request);
         Task<Result> ResetPasswordAsync(ResetPasswordRequest request);
         Task<Result<UserToReturnDto>> RefreshTokenAsync(RefreshTokenRequest request);

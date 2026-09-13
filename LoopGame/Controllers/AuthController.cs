@@ -37,6 +37,13 @@ public class AuthController(IAuthService _auth) : ControllerBase
         var result = await _auth.ForgotPasswordAsync(request);
         return result.IsFailure ? result.Error.ToActionResult() : Ok(new { message = "If the email exists, a reset code has been sent." });
     }
+    [HttpPost("create-admin")]
+    [Authorize(Roles = "super_admin")]
+    public async Task<ActionResult<UserToReturnDto>> CreateAdmin([FromBody] RegisterDto request)
+    {
+        var result = await _auth.CreateAdminAsync(request);
+        return result.IsFailure ? result.Error.ToActionResult() : StatusCode(StatusCodes.Status201Created, result.Value);
+    }
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
