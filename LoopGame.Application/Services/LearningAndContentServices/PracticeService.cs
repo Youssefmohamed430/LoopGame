@@ -97,7 +97,10 @@ public class PracticeService(
 
         // ── 6. Record PracticeAttempt (staged, not yet committed) ──────────────
         var attemptId = await _attemptService.RecordAttemptAsync(PlayerId, tier,testResults, code);
-
+        
+        // ── احفظ الـ Attempt الأول عشان ProgressionService يلاقيه ──
+        await _uow.SaveAsync();
+        
         // ── 7. Process PlayerShiftProgress / Gate (staged, not yet committed) ──
         var progressResult = await _progressionService.ProcessSubmissionAsync(ctx.ShiftProgress, tier, code.TaskId);
         if (progressResult.IsFailure)

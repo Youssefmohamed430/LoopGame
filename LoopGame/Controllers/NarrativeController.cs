@@ -31,6 +31,17 @@ public class NarrativeController(
     public async Task<ActionResult<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId)
         => await Handle(_narrative.Save(playerId, shiftId, beatId));
 
+    [HttpPost("{playerId:int}/shifts/{shiftId:int}/end")]
+    public async Task<ActionResult<Object>> Save(int playerId, int shiftId)
+    {
+        var result = await _narrative.EndShift(playerId, shiftId);
+
+        if (result.IsFailure)
+            return BadRequest(result.Error);
+        
+        return Ok(result.Value);
+    }
+
     /// <summary>
     /// Retrieves all choices available to the player for a specific story beat.
     /// </summary>

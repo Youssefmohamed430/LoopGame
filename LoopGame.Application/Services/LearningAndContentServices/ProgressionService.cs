@@ -29,24 +29,28 @@ public sealed class ProgressionService(IUnitOfWork _uow, IEconomyService _econom
 
         bool isCorrect = tier == ChoiceTier.Ideal || tier == ChoiceTier.Acceptable;
         
-        var tasksCompleted = _uow.GetRepository<PracticeAttempt>()
+        var numberOfTasks = await _uow.GetRepository<Shift>()
+            .FindAll(s => s.ShiftId == progress.ShiftId)
+            .Select(s => s.NumberOfTasks)
+            .FirstOrDefaultAsync(ct);
+
+        var tasksCompleted = await _uow.GetRepository<PracticeAttempt>()
             .FindAll(pa =>
                 pa.PlayerId == progress.PlayerId &&
                 pa.Task.ShiftId == progress.ShiftId &&
                 pa.IsCompleted)
             .Select(pa => pa.TaskId)
             .Distinct()
-            .ToList();
+            .ToListAsync(ct);
 
         if (isCorrect && !progress.IsGateCleared)
         {
-            if (tasksCompleted.Count() == progress.Shift.NumberOfTasks)
+            if (tasksCompleted.Count == numberOfTasks && numberOfTasks > 0)
             {
-
-                progress.IsGateCleared  = true;
-                progress.GateClearedAt  = DateTime.UtcNow;
-                progress.Status         = ShiftProgressStatus.Completed;
-                progress.CompletedAt    = DateTime.UtcNow;
+                progress.IsGateCleared = true;
+                progress.GateClearedAt = DateTime.UtcNow;
+                progress.Status        = ShiftProgressStatus.Completed;
+                progress.CompletedAt   = DateTime.UtcNow;
 
                 await _economyService.PayShiftSalaryAsync(progress.PlayerId, progress.ShiftId, ct);
             }
