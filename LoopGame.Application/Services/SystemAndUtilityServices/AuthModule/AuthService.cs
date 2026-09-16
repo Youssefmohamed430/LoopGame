@@ -90,7 +90,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 PlayerId = user.Id,
                 PlayerName = request.UserName,
             };
-            await _userManager.AddToRoleAsync(user, "Player");
+            await _userManager.AddToRoleAsync(user, "player");
 
                     _logger.LogError(
                         "Failed to add Player role for {Email}: {Errors}",request.Email,errors);
