@@ -1,6 +1,7 @@
 using LoopGame.Application.Dtos;
 using LoopGame.Application.IServices.LearningAndContentServices;
 using LoopGame.Extensions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LoopGame.Controllers;
@@ -13,6 +14,7 @@ namespace LoopGame.Controllers;
 ///   POST api/practice/{playerId}/submit
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/practice")]
 public class PracticeController(IPracticeService _practiceService) : ControllerBase
 {

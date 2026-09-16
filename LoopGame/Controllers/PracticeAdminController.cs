@@ -10,7 +10,7 @@ namespace LoopGame.Controllers;
 /// Admin Content Management for Practice Tasks & Test Cases.
 /// </summary>
 [ApiController]
-//[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin")]
 [Route("api/admin/practice")]
 public class PracticeAdminController(IPracticeService _practiceService) : ControllerBase
 {

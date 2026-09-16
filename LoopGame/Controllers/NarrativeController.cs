@@ -1,4 +1,5 @@
 using LoopGame.Extensions;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LoopGame.Controllers;
 
@@ -14,6 +15,7 @@ namespace LoopGame.Controllers;
 /// once the auth pipeline lands.
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/narrative")]
 public class NarrativeController(
     INarrativeService _narrative,

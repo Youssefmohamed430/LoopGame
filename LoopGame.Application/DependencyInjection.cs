@@ -100,38 +100,38 @@ public static class DependencyInjection
                 settings.SecretKey,
                 config);
         });
-        services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme =
-                JwtBearerDefaults.AuthenticationScheme;
+        //services.AddAuthentication(options =>
+        //{
+        //    options.DefaultAuthenticateScheme =
+        //        JwtBearerDefaults.AuthenticationScheme;
 
-            options.DefaultChallengeScheme =
-                JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            var jwt = services
-                .BuildServiceProvider()
-                .GetRequiredService<IOptions<JwtSettings>>()
-                .Value;
+        //    options.DefaultChallengeScheme =
+        //        JwtBearerDefaults.AuthenticationScheme;
+        //})
+        //.AddJwtBearer(options =>
+        //{
+        //    var jwt = services
+        //        .BuildServiceProvider()
+        //        .GetRequiredService<IOptions<JwtSettings>>()
+        //        .Value;
 
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
+        //    options.TokenValidationParameters = new TokenValidationParameters
+        //    {
+        //        ValidateIssuer = true,
+        //        ValidateAudience = true,
+        //        ValidateLifetime = true,
+        //        ValidateIssuerSigningKey = true,
 
-                ValidIssuer = jwt.Issuer,
-                ValidAudience = jwt.Audience,
+        //        ValidIssuer = jwt.Issuer,
+        //        ValidAudience = jwt.Audience,
 
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(jwt.Secret)
-                ),
+        //        IssuerSigningKey = new SymmetricSecurityKey(
+        //            Encoding.UTF8.GetBytes(jwt.Secret)
+        //        ),
 
-                ClockSkew = TimeSpan.Zero
-            };
-        });
+        //        ClockSkew = TimeSpan.Zero
+        //    };
+        //});
 
 
         return services;

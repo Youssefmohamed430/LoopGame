@@ -87,7 +87,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 PlayerId = user.Id,
                 PlayerName = request.UserName,
             };
-            await _userManager.AddToRoleAsync(user, "Player");
+            await _userManager.AddToRoleAsync(user, "player");
 
             await _unitOfWork.GetRepository<Player>().AddAsync(profile);
             await _unitOfWork.SaveAsync();
