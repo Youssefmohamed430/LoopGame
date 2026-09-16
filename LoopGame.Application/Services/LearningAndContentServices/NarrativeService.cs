@@ -142,6 +142,36 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         return Result.Success(narrativeFlowDto);
     }
 
+    public async Task<Result<Object>> EndShift(int playerId, int shiftId)
+    {
+        // 1. Validate Player and Shift Access
+        var (player, failure) = await ValidatePlayerAccess(playerId, shiftId);
+        if (failure != null)
+            return failure;
+        
+        var shiftProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
+            .FindAsync(ps => ps.PlayerId == playerId && ps.ShiftId == shiftId);
+        
+        if (shiftProgress == null)
+            return Result.Failure(NarrativeErrors.ShiftNotFound);
+
+        if (!shiftProgress.IsGateCleared)
+            return Result.Failure(NarrativeErrors.ShiftNotCompleted);
+
+        var nextshift = await unitOfWork.GetRepository<Shift>()
+            .FindAsync(s => s.ShiftNumber == player.CurrentShift.ShiftNumber + 1);
+
+        player.CurrentShiftId = nextshift.ShiftId;
+        await unitOfWork.GetRepository<Player>().UpdateAsync(player);
+        
+        var playersave = await unitOfWork.GetRepository<PlayerSave>()
+            .FindAsync(ps => ps.PlayerId == playerId);
+
+        playersave.BeatId = 1;
+        await unitOfWork.GetRepository<PlayerSave>().UpdateAsync(playersave);
+        await unitOfWork.SaveAsync();
+        return Result.Success(new { msg = "End Shift Success!"  });
+    }
     // ═══════════════════════════════════════════════════════════════════════
     // Shift Management (Admin)
     // ═══════════════════════════════════════════════════════════════════════
@@ -727,7 +757,7 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         int playerId, int shiftId)
     {
         var player = await unitOfWork.GetRepository<Player>()
-            .FindAsync(p => p.PlayerId == playerId);
+            .FindAsync(p => p.PlayerId == playerId,["CurrentShift"]);
 
         if (player == null)
             return (null, Result.Failure<NarrativeFlowDto>(ChoiceErrors.PlayerNotFound));

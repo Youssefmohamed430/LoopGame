@@ -69,46 +69,112 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
         {
             if (request == null)
                 return AuthErrors.InvalidCredentials();
-
-            var user = request.Adapt<ApplicationUser>();
-            user.EmailConfirmed = true;
-
-            var result = await _userManager.CreateAsync(user, request.Password);
-            if (!result.Succeeded)
+            try
             {
-                _logger.LogWarning("Registration failed for {Email}: {Errors}",
-                    request.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
-                return Result.Failure<UserToReturnDto>
-                    (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
-            }
+                await _unitOfWork.BeginTransactionAsync();
+                var user = request.Adapt<ApplicationUser>();
+                user.EmailConfirmed = true;
+
+                var result = await _userManager.CreateAsync(user, request.Password);
+                if (!result.Succeeded)
+                {
+                    _logger.LogWarning("Registration failed for {Email}: {Errors}",
+                        request.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                    await _unitOfWork.RollbackAsync();
+                    return Result.Failure<UserToReturnDto>
+                        (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
+                }
 
             var profile = new Player
             {
                 PlayerId = user.Id,
                 PlayerName = request.UserName,
             };
-            await _userManager.AddToRoleAsync(user, "player");
+            await _userManager.AddToRoleAsync(user, "Player");
 
-            await _unitOfWork.GetRepository<Player>().AddAsync(profile);
-            await _unitOfWork.SaveAsync();
-            await _economyService.InitializePlayerEconomyAsync(user.Id);
+                    _logger.LogError(
+                        "Failed to add Player role for {Email}: {Errors}",request.Email,errors);
+                    await _unitOfWork.RollbackAsync();
+                    return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(errors));
+                }
+                var economyResult = await _economyService.InitializePlayerEconomyAsync(user.Id);
+                if (economyResult.IsFailure)
+                {
+                    _logger.LogError("Failed to initialize economy for user {Email}: {Errors}", request.Email, economyResult.Error.Description);
+                    await _unitOfWork.RollbackAsync();
+                    return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(economyResult.Error.Description));
+                }
+                await _unitOfWork.GetRepository<Player>().AddAsync(profile);
+                await _unitOfWork.SaveAsync();
+                await _unitOfWork.CommitAsync();
 
-            var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id };
-            var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
-            var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
+                var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id };
+                var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
+                var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
 
-            var userToReturn = user.Adapt<UserToReturnDto>();
+                var userToReturn = user.Adapt<UserToReturnDto>();
             
-            if (accessTokenResult.IsSuccess && refreshTokenResult.IsSuccess)
-            {
-                userToReturn.AccessToken = accessTokenResult.Value;
-                userToReturn.RefreshToken = refreshTokenResult.Value.Token;
+                if (accessTokenResult.IsSuccess && refreshTokenResult.IsSuccess)
+                {
+                    userToReturn.AccessToken = accessTokenResult.Value;
+                    userToReturn.RefreshToken = refreshTokenResult.Value.Token;
+                }
+            
+                userToReturn.AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+                return Result.Success(userToReturn);
             }
-            
-            userToReturn.AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
-            return Result.Success(userToReturn);
+            catch (Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(ex, "Unexpected error while registering user {Email}", request.Email);
+                return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed("An unexpected error occurred"));
+            }
         }
+        public async Task<Result<AdminDto>> CreateAdminAsync(RegisterDto request)
+        {
+            if (request == null)
+                return AuthErrors.InvalidCredentials();
+            try
+            {
+                await _unitOfWork.BeginTransactionAsync();
+                var user = request.Adapt<ApplicationUser>();
+                user.EmailConfirmed = true;
 
+                var result = await _userManager.CreateAsync(user, request.Password);
+                if (!result.Succeeded)
+                {
+                    _logger.LogWarning("Registration failed for {Email}: {Errors}", request.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                    await _unitOfWork.RollbackAsync();
+                    return Result.Failure<AdminDto>
+                        (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
+                }
+                var roleResult = await _userManager.AddToRoleAsync(user,"admin");
+
+                if (!roleResult.Succeeded)
+                {
+                    var errors = string.Join(", ", roleResult.Errors.Select(e => e.Description));
+                    _logger.LogError("Failed to add Admin role for {Email}: {Errors}", request.Email, errors);
+
+                    await _unitOfWork.RollbackAsync();
+
+                    return Result.Failure<AdminDto>(
+                        AuthErrors.RegistrationFailed(errors));
+                }
+
+                await _unitOfWork.CommitAsync();
+                var userToReturn = user.Adapt<AdminDto>();
+                return Result.Success(userToReturn);
+            }
+            catch(Exception ex)
+            {
+                await _unitOfWork.RollbackAsync();
+                _logger.LogError(ex,"Unexpected error while creating admin {Email}",request.Email);
+
+                return Result.Failure<AdminDto>(AuthErrors.RegistrationFailed("An unexpected error occurred"));
+
+            }
+
+        }
         public async Task LogoutAsync(string userId, string? refreshToken = null)
         {
             if (!string.IsNullOrEmpty(refreshToken))
@@ -228,5 +294,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
             return new string(Enumerable.Repeat(chars, length)
                 .Select(s => s[RandomNumberGenerator.GetInt32(s.Length)]).ToArray());
         }
+
+        
     }
 }

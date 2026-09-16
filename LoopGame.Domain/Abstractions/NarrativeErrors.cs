@@ -30,6 +30,9 @@ public static class NarrativeErrors
 
     public static readonly Error InvalidShiftNumber =
         new("Narrative.InvalidShiftNumber", "Shift number must be greater than zero.");
+    
+    public static readonly Error ShiftNotCompleted =
+        new("Narrative.ShiftNotCompleted", "Shift Not Completed.");
 
     // ── StoryBeat errors ─────────────────────────────────────────────────────
     public static readonly Error BeatNotFound =
