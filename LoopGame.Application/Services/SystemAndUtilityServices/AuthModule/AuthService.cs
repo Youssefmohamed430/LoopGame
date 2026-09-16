@@ -85,17 +85,17 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                         (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
                 }
 
-            var profile = new Player
-            {
-                PlayerId = user.Id,
-                PlayerName = request.UserName,
-            };
-            await _userManager.AddToRoleAsync(user, "player");
-
+                var profile = new Player
+                {
+                    PlayerId = user.Id,
+                    PlayerName = request.UserName,
+                };
+                var resultRole = await _userManager.AddToRoleAsync(user, "player");
+                if(resultRole != null) {
                     _logger.LogError(
-                        "Failed to add Player role for {Email}: {Errors}",request.Email,errors);
+                        "Failed to add Player role for {Email}: {Errors}",request.Email,resultRole.Errors);
                     await _unitOfWork.RollbackAsync();
-                    return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(errors));
+                    return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(string.Join(", ", resultRole.Errors)));
                 }
                 var economyResult = await _economyService.InitializePlayerEconomyAsync(user.Id);
                 if (economyResult.IsFailure)
