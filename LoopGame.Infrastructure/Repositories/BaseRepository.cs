@@ -34,6 +34,18 @@ public class BaseRepository<T>(AppDbContext _context) : IBaseRepository<T> where
         return found!;
     }
 
+    public async Task<TDto> FindAsync<TDto>(Expression<Func<T, bool>> criteria, string[]? includes = null)
+    {
+        var entity = _context.Set<T>().AsTracking();
+
+        if (includes != null)
+            foreach (var include in includes ?? Array.Empty<string>())
+                entity = entity.Include(include);
+
+        var found = await entity.Where(criteria).ProjectToType<TDto>().FirstOrDefaultAsync()!;
+        return found!;
+    }
+
     public async Task<TResult> FindWithAttributesAsync<TResult>(
     Expression<Func<T, bool>> criteria,
     Expression<Func<T, TResult>> selector,

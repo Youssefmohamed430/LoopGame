@@ -20,6 +20,9 @@ public static class PracticeErrors
     public static readonly Error TaskNotFound =
         new("NotFound.Task", "The requested practice task was not found.");
 
+    public static readonly Error TasksCompleted =
+        new("TasksCompleted.Task", "All Tasks Completed.");
+
     public static readonly Error MaxAttemptsReached =
         new("Practice.MaxAttemptsReached", "Maximum attempts reached for this task.");
 

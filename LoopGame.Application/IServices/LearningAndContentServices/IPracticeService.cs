@@ -2,7 +2,7 @@
 
 public interface IPracticeService
 {
-    Task<Result<PracticeDto>> GetTaskAsync(int TaskId,int PlayerId);
+    Task<Result<PracticeDto>> GetTaskAsync(int ShiftId, int PlayerId);
     Task<Result<List<PracticeDto>>> GetTasks();
     Result<PracticeDto> AddPracticeTask(CreatePracticeDto practice);
     Result<PracticeDto> UpdatePracticeTask(int TaskId, UpdatePracticeDto practice);

@@ -7,6 +7,7 @@ namespace Domain.IRepositries;
         IQueryable<TDto> GetAll<TDto>();
         T Find(Expression<Func<T, bool>> criteria, string[]? includes = null);
         Task<T> FindAsync(Expression<Func<T, bool>> criteria, string[]? includes = null);
+        Task<TDto> FindAsync<TDto>(Expression<Func<T, bool>> criteria, string[]? includes = null);
         T FindWithTracking(Expression<Func<T, bool>> criteria, string[]? includes = null);
         IQueryable<T> FindAllThenInclude(Expression<Func<T, bool>> criteria, Func<IQueryable<T>, IQueryable<T>>? includes = null);
 
