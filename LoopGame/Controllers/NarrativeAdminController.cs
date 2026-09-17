@@ -17,7 +17,7 @@ namespace LoopGame.Controllers;
 ///   /api/admin/beats    — StoryBeat management
 /// </summary>
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "super_admin")]
 [Route("api/admin")]
 public class NarrativeAdminController(
     INarrativeService _narrative,

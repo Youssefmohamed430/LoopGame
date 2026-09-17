@@ -141,7 +141,6 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         };
         return Result.Success(narrativeFlowDto);
     }
-
     public async Task<Result<Object>> EndShift(int playerId, int shiftId)
     {
         // 1. Validate Player and Shift Access

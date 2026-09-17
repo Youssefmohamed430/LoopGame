@@ -148,7 +148,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                     return Result.Failure<AdminDto>
                         (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
                 }
-                var roleResult = await _userManager.AddToRoleAsync(user,"admin");
+                var roleResult = await _userManager.AddToRoleAsync(user, "admin");
 
                 if (!roleResult.Succeeded)
                 {

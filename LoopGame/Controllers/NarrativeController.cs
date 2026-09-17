@@ -34,7 +34,7 @@ public class NarrativeController(
         => await Handle(_narrative.Save(playerId, shiftId, beatId));
 
     [HttpPost("{playerId:int}/shifts/{shiftId:int}/end")]
-    public async Task<ActionResult<Object>> Save(int playerId, int shiftId)
+    public async Task<ActionResult<Object>> EndShift(int playerId, int shiftId)
     {
         var result = await _narrative.EndShift(playerId, shiftId);
 
