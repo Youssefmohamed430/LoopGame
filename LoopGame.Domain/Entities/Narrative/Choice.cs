@@ -12,6 +12,7 @@ public class Choice
     public string     ChoiceText        { get; set; } = string.Empty;
     public ChoiceTier Tier              { get; set; }
     public int?       ConsequenceId     { get; set; }
+    public bool IsEvaluateable { get; set; }
     public string?    ImmediateFeedback { get; set; }
 
     // Navigation

@@ -12,5 +12,6 @@ namespace LoopGame.Application.Dtos
         public ChoiceTier? tier { get; set; }
         public int? ConsequenceId { get; set; }
         public string? ImmediateFeedback { get; set; }
+        public bool IsEvaluateable { get; set; }
     }
 }
