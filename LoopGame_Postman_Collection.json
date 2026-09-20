@@ -1,0 +1,696 @@
+{
+	"info": {
+		"_postman_id": "5f1a9b2c-8d3e-4f7a-b1c2-9e8d7a6b5c4f",
+		"name": "LoopGame API (Auth, Admin, SideTask)",
+		"description": "Postman Collection for LoopGame controllers: AuthController, AdminController, and SideTaskController.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"description": "Authentication and authorization endpoints (Register, Login, Token Refresh, Password Reset, Logout, Super Admin creation).",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userName\": \"player_demo\",\n  \"name\": \"John Doe\",\n  \"email\": \"player@example.com\",\n  \"password\": \"Password@123\",\n  \"confirmPassword\": \"Password@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Register a new user / player."
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set(\"token\", jsonData.token);",
+									"    }",
+									"    if (jsonData.refreshToken) {",
+									"        pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userName\": \"player_demo\",\n  \"password\": \"Password@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login with username and password. Automatically sets the 'token' collection variable on success."
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"player@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/forgot-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password"
+							]
+						},
+						"description": "Requests a password reset code to be sent to the given email."
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"player@example.com\",\n  \"code\": \"123456\",\n  \"newPassword\": \"NewPassword@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password"
+							]
+						},
+						"description": "Resets the user's password using the OTP code received via email."
+					},
+					"response": []
+				},
+				{
+					"name": "Create Admin",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"userName\": \"admin_user\",\n  \"name\": \"Admin User\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"AdminPass@123\",\n  \"confirmPassword\": \"AdminPass@123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/create-admin",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"create-admin"
+							]
+						},
+						"description": "Requires 'super_admin' role to create a new admin."
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.collectionVariables.set(\"token\", jsonData.token);",
+									"    }",
+									"    if (jsonData.refreshToken) {",
+									"        pm.collectionVariables.set(\"refreshToken\", jsonData.refreshToken);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh"
+							]
+						},
+						"description": "Refreshes expired JWT using a valid refresh token."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Revokes current refresh token and logs out the authorized user."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin",
+			"description": "Admin management endpoints for uploading sheets, listing sheets, deleting files, and viewing student progress. All endpoints require 'admin' role.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{adminToken}}",
+						"type": "string"
+					}
+				]
+			},
+			"item": [
+				{
+					"name": "Upload Concept Sheet",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": ""
+								},
+								{
+									"key": "concept",
+									"value": "Loops",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/sheets/upload",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"sheets",
+								"upload"
+							]
+						},
+						"description": "Upload a PDF or Word (.docx) concept sheet file."
+					},
+					"response": []
+				},
+				{
+					"name": "List Uploaded Concept Sheets",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/sheets/list/:concept",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"sheets",
+								"list",
+								":concept"
+							],
+							"variable": [
+								{
+									"key": "concept",
+									"value": "Loops",
+									"description": "Concept tag name (e.g. Loops, Arrays, Conditionals)"
+								}
+							]
+						},
+						"description": "List all uploaded files for a specific concept."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Uploaded Sheet",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/sheets/delete/:fileId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"sheets",
+								"delete",
+								":fileId"
+							],
+							"variable": [
+								{
+									"key": "fileId",
+									"value": "1",
+									"description": "ID of the uploaded file to delete"
+								}
+							]
+						},
+						"description": "Deletes an uploaded file by its ID."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Shift Students Progress",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/shifts/:shiftId/students",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"shifts",
+								":shiftId",
+								"students"
+							],
+							"variable": [
+								{
+									"key": "shiftId",
+									"value": "1",
+									"description": "ID of the shift"
+								}
+							]
+						},
+						"description": "Retrieves the progress of all students enrolled in a specific shift."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Student Overall Progress",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/admin/students/:playerId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"admin",
+								"students",
+								":playerId"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "1",
+									"description": "ID of the student/player"
+								}
+							]
+						},
+						"description": "Retrieves overall progress details for a specific student/player."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SideTask",
+			"description": "Side-task endpoints for players: view active task, submit solution, abandon task, unlock hints, and admin assignment.",
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{token}}",
+						"type": "string"
+					}
+				]
+			},
+			"item": [
+				{
+					"name": "Get Active Side Task",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sidetask/:playerId/active",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"sidetask",
+								":playerId",
+								"active"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "{{playerId}}",
+									"description": "ID of the player"
+								}
+							]
+						},
+						"description": "Returns the player's currently active side task."
+					},
+					"response": []
+				},
+				{
+					"name": "Submit Side Task Solution",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sideTaskId\": 1,\n  \"submittedCode\": \"using System;\\npublic class Solution {\\n    public int Solve() {\\n        return 42;\\n    }\\n}\",\n  \"timeSpentSec\": 120,\n  \"sahmHintsUsed\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/sidetask/:playerId/submit",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"sidetask",
+								":playerId",
+								"submit"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "{{playerId}}",
+									"description": "ID of the player"
+								}
+							]
+						},
+						"description": "Submits player code solution for grading and reward calculation."
+					},
+					"response": []
+				},
+				{
+					"name": "Abandon Side Task",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sidetask/:playerId/:sideTaskId/abandon",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"sidetask",
+								":playerId",
+								":sideTaskId",
+								"abandon"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "{{playerId}}",
+									"description": "ID of the player"
+								},
+								{
+									"key": "sideTaskId",
+									"value": "1",
+									"description": "ID of the side task to abandon"
+								}
+							]
+						},
+						"description": "Abandons the active task, applies the penalty (-100 EGP), and moves to next queued task if available."
+					},
+					"response": []
+				},
+				{
+					"name": "Get Hints for Side Task",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sidetask/:playerId/:sideTaskId/hints",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"sidetask",
+								":playerId",
+								":sideTaskId",
+								"hints"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "{{playerId}}",
+									"description": "ID of the player"
+								},
+								{
+									"key": "sideTaskId",
+									"value": "1",
+									"description": "ID of the side task"
+								}
+							]
+						},
+						"description": "Returns all hints for the side task. Locked hints have HintText = null."
+					},
+					"response": []
+				},
+				{
+					"name": "Unlock Hint",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sideTaskId\": 1,\n  \"hintLevel\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/sidetask/:playerId/hints/unlock",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"sidetask",
+								":playerId",
+								"hints",
+								"unlock"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "{{playerId}}",
+									"description": "ID of the player"
+								}
+							]
+						},
+						"description": "Unlocks a hint level (1 = ConceptualNudge, 2 = StructuralGuidance, 3 = CodeSnippet), deducting EGP cost."
+					},
+					"response": []
+				},
+				{
+					"name": "Assign Task (Admin)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/sidetask/:playerId/assign",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"sidetask",
+								":playerId",
+								"assign"
+							],
+							"variable": [
+								{
+									"key": "playerId",
+									"value": "{{playerId}}",
+									"description": "ID of the player"
+								}
+							]
+						},
+						"description": "Manually assigns a new side task for the player (Requires Admin role)."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://localhost:7000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "adminToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerId",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}

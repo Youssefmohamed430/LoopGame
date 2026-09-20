@@ -101,6 +101,10 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                     await _unitOfWork.RollbackAsync();
                     return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(errors));
                 }
+                await _unitOfWork.GetRepository<Player>().AddAsync(profile);
+                await _unitOfWork.SaveAsync();
+                await _unitOfWork.CommitAsync();
+
                 var economyResult = await _economyService.InitializePlayerEconomyAsync(user.Id);
                 if (economyResult.IsFailure)
                 {
@@ -108,9 +112,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                     await _unitOfWork.RollbackAsync();
                     return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(economyResult.Error.Description));
                 }
-                await _unitOfWork.GetRepository<Player>().AddAsync(profile);
                 await _unitOfWork.SaveAsync();
-                await _unitOfWork.CommitAsync();
 
                 var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id };
                 var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
