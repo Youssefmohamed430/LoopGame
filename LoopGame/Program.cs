@@ -39,6 +39,23 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+// ── CORS ─────────────────────────────────────────────────────────────────
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowConfiguredOrigins", policy =>
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // لو بتستخدم cookies أو Authorization header
+    });
+});
+
 
 // Add Application services
 builder.Services.AddApplication(builder.Configuration);
@@ -77,6 +94,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHangfireDashboard("/hangfire");
 app.UseHttpsRedirection();
+app.UseCors("AllowConfiguredOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
