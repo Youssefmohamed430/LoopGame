@@ -45,17 +45,24 @@ public class PracticeService(
         return Result.Success(tasks);
     }
 
-    public async Task<Result<PracticeDto>> GetTaskAsync(int TaskId, int PlayerId)
+    public async Task<Result<PracticeDto>> GetTaskAsync(int ShiftId, int PlayerId)
     {
-        var task = _uow.GetRepository<PracticeTask>()
-            .Find<PracticeDto>(pt => pt.TaskId == TaskId, new[] { "TestCases", "Shift" });
+        var practiceTasks = _uow.GetRepository<PracticeAttempt>()
+            .FindAll(pa => pa.PlayerId == PlayerId &&
+                           pa.Task.ShiftId == ShiftId &&
+                           pa.IsCompleted,
+                           ["Task"])
+            .OrderBy(pa => pa.SubmittedAt)
+            .Select(pa => pa.Task)
+            .ToList();
+
+        var taskOrder = practiceTasks.LastOrDefault()?.TaskOrder;
+
+        var task = await _uow.GetRepository<PracticeTask>()
+            .FindAsync<PracticeDto>(p => p.ShiftId == ShiftId && p.TaskOrder == taskOrder + 1);
 
         if (task is null)
-            return Result.Failure<PracticeDto>(PracticeErrors.TaskNotFound);
-
-        var accessResult = await _accessService.ValidateAccessAsync(PlayerId, TaskId);
-        if (accessResult.IsFailure)
-            return Result.Failure<PracticeDto>(accessResult.Error);
+            return Result.Failure<PracticeDto>(PracticeErrors.TasksCompleted);
 
         // Filter out hidden test cases for the player-facing view.
         task.TestCases = task.TestCases?.Where(t => !t.IsHidden).ToList();

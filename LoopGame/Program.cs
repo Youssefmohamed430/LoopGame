@@ -1,6 +1,9 @@
 // Load environment variables from root .env file into System.Environment
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 
 Env.TraversePath().Load();
@@ -10,7 +13,48 @@ var builder = WebApplication.CreateBuilder(args);
 // Add Infrastructure services (registers AppDbContext with PostgreSQL using connection string from .env)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// في Program.cs بعد builder.Services.AddApplication(...)
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    var jwt = builder.Configuration
+        .GetSection("JwtSettings")
+        .Get<JwtSettings>()!;
 
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwt.Issuer,
+        ValidAudience = jwt.Audience,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwt.Secret)),
+        ClockSkew = TimeSpan.Zero
+    };
+});
+
+// ── CORS ─────────────────────────────────────────────────────────────────
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowConfiguredOrigins", policy =>
+    {
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // لو بتستخدم cookies أو Authorization header
+    });
+});
 
 
 // Add Application services
@@ -50,6 +94,8 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHangfireDashboard("/hangfire");
 app.UseHttpsRedirection();
+app.UseCors("AllowConfiguredOrigins");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

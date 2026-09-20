@@ -197,22 +197,25 @@ public class ChoiceService
             await unitOfWork.GetRepository<ConsequenceQueue>()
                 .AddAsync(ConsequenceQueue);
         }
-        var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId)!;
-        playerProgress.GateAttempts++;
-        await unitOfWork.SaveAsync();
+        if(choice.IsEvaluateable)
+        {
+            var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId)!;
+            playerProgress.GateAttempts++;
+            await unitOfWork.SaveAsync();
 
-        // ── Event telemetry (fire-and-forget, after persistence) ──
-        eventPublisher.Publish(new GameEventDto(
-            PlayerId,
-            EventType:   AssessmentWeights.EventTypes.ChoiceSubmission,
-            ConceptTag: choice.Beat.Shift.ConceptTag,
-            Tier:        choice.Tier.ToString(),
-            PayloadJson: JsonSerializer.Serialize(new
-            {
-                beatId   = choice.BeatId,
-                choiceId = choice.ChoiceId
-            })));
+            // ── Event telemetry (fire-and-forget, after persistence) ──
+            eventPublisher.Publish(new GameEventDto(
+                PlayerId,
+                EventType:   AssessmentWeights.EventTypes.ChoiceSubmission,
+                ConceptTag: choice.Beat.Shift.ConceptTag,
+                Tier:        choice.Tier.ToString(),
+                PayloadJson: JsonSerializer.Serialize(new
+                {
+                    beatId   = choice.BeatId,
+                    choiceId = choice.ChoiceId
+                })));
 
+        }
         return Result.Success(choice.Adapt<ChoiceDto>());
     }
 

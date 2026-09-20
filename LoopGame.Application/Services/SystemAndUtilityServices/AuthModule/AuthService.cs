@@ -90,16 +90,12 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                     PlayerId = user.Id,
                     PlayerName = request.UserName,
                 };
-                var roleResult = await _userManager.AddToRoleAsync(user, "Player");
-                if (!roleResult.Succeeded)
-                {
-                    var errors = string.Join(", ",
-                        roleResult.Errors.Select(e => e.Description));
-
+                var resultRole = await _userManager.AddToRoleAsync(user, "player");
+                if(resultRole != null) {
                     _logger.LogError(
-                        "Failed to add Player role for {Email}: {Errors}",request.Email,errors);
+                        "Failed to add Player role for {Email}: {Errors}",request.Email,resultRole.Errors);
                     await _unitOfWork.RollbackAsync();
-                    return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(errors));
+                    return Result.Failure<UserToReturnDto>(AuthErrors.RegistrationFailed(string.Join(", ", resultRole.Errors)));
                 }
                 await _unitOfWork.GetRepository<Player>().AddAsync(profile);
                 await _unitOfWork.SaveAsync();
@@ -154,7 +150,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                     return Result.Failure<AdminDto>
                         (AuthErrors.RegistrationFailed(string.Join(", ", result.Errors.Select(e => e.Description))));
                 }
-                var roleResult = await _userManager.AddToRoleAsync(user,"admin");
+                var roleResult = await _userManager.AddToRoleAsync(user, "admin");
 
                 if (!roleResult.Succeeded)
                 {
