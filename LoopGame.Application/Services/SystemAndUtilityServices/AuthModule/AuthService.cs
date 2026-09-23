@@ -91,7 +91,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                     PlayerName = request.UserName,
                 };
                 var resultRole = await _userManager.AddToRoleAsync(user, "player");
-                if(resultRole != null) {
+                if(!resultRole.Succeeded) {
                     _logger.LogError(
                         "Failed to add Player role for {Email}: {Errors}",request.Email,resultRole.Errors);
                     await _unitOfWork.RollbackAsync();
@@ -99,7 +99,6 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 }
                 await _unitOfWork.GetRepository<Player>().AddAsync(profile);
                 await _unitOfWork.SaveAsync();
-                await _unitOfWork.CommitAsync();
 
                 var economyResult = await _economyService.InitializePlayerEconomyAsync(user.Id);
                 if (economyResult.IsFailure)
@@ -110,7 +109,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 }
                 await _unitOfWork.SaveAsync();
 
-                var tokenUser = new TokenUserDto { Email = user.Email!, UserId = user.Id };
+                var tokenUser = new TokenUserDto { Role = "player", Email = user.Email!, UserId = user.Id };
                 var accessTokenResult = await _tokenService.GenerateAccessToken(tokenUser);
                 var refreshTokenResult = await _tokenService.GenerateRefreshTokenAsync(user.Id);
 
@@ -123,6 +122,7 @@ namespace LoopGame.Application.Services.SystemAndUtilityServices.AuthModule
                 }
             
                 userToReturn.AccessTokenExpiresAt = DateTime.UtcNow.AddMinutes(15);
+                await _unitOfWork.CommitAsync();
                 return Result.Success(userToReturn);
             }
             catch (Exception ex)

@@ -275,13 +275,6 @@ public class EconomyService(
 
     public async Task<Result<BalanceDto>> InitializePlayerEconomyAsync(int playerId, CancellationToken ct = default)
     {
-        var playerExists = await _uow.GetRepository<Player>()
-            .FindAll(p => p.PlayerId == playerId)
-            .AnyAsync(ct);
-
-        if (!playerExists)
-            return Result.Failure<BalanceDto>(EconomyErrors.PlayerNotFound);
-
         var existing = await _uow.GetRepository<PlayerEconomy>()
             .FindAll(e => e.PlayerId == playerId)
             .AnyAsync(ct);
