@@ -11,9 +11,9 @@ public interface INarrativeService
     /// Loads the full narrative flow for a player starting a shift.
     /// Merges pending consequence beats with standard narrative beats.
     /// </summary>
-    Task<Result<NarrativeFlowDto>> StartShift(int playerId, int shiftId);
-    Task<Result<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId);
-    Task<Result<object>> EndShift(int playerId, int shiftId);
+    Task<Result<NarrativeFlowDto>> StartShift(int playerId);
+    Task<Result<NarrativeFlowDto>> Save(int playerId, int beatId);
+    Task<Result<object>> EndShift(int playerId);
     
 
     // ── Shift management (Admin) ──────────────────────────────────────────────

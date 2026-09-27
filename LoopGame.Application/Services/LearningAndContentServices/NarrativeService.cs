@@ -14,23 +14,23 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
     // Runtime
     // ═══════════════════════════════════════════════════════════════════════
 
-    public async Task<Result<NarrativeFlowDto>> StartShift(int playerId, int shiftId)
+    public async Task<Result<NarrativeFlowDto>> StartShift(int playerId)
     {
         // 1. Validate Player and Shift Access
-        var (player, failure) = await ValidatePlayerAccess(playerId, shiftId);
+        var (player, failure) = await ValidatePlayerAccess(playerId);
         if (failure != null)
             return failure;
 
         // 2. Get Shift
-        var (shift, failure1) = await GetShiftEntityForRuntime(shiftId);
+        var (shift, failure1) = await GetShiftEntityForRuntime(player);
         if (failure1 != null)
             return failure1;
 
         // 3. Fetch standard narrative beats for this shift (ordered by sequence_order)
-        var beatsDto = GetNarrativeBeats(shiftId);
+        var beatsDto = GetNarrativeBeats(shift.ShiftId);
 
         // 4. Fetch pending consequence beats targeted for this shift
-        var pendingConsequences = GetPendingConsequences(playerId, shiftId);
+        var pendingConsequences = GetPendingConsequences(playerId, shift.ShiftId);
 
         // 5. Categorize consequences by InjectPosition ('start' vs 'end') and mark them as fired
         var (startConsequenceBeats, endConsequenceBeats) =
@@ -41,14 +41,14 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
 
         // - Add PlayerShiftProgress & PlayerSave if not already present
         var playerShiftProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
-                                        .FindAsync(p => p.PlayerId == playerId && p.ShiftId == shiftId);
+                                        .FindAsync(p => p.PlayerId == playerId && p.ShiftId == shift.ShiftId);
 
         if (playerShiftProgress == null)
         {
             var newProgress = new PlayerShiftProgress
             {
                 PlayerId = playerId,
-                ShiftId  = shiftId,
+                ShiftId  = shift.ShiftId,
                 Status   = ShiftProgressStatus.InProgress,
                 StartedAt = DateTime.UtcNow
             };
@@ -89,12 +89,14 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
 
         return Result.Success(narrativeFlowDto);
     }
-    public async Task<Result<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId)
+    public async Task<Result<NarrativeFlowDto>> Save(int playerId, int beatId)
     {
         // 1. Validate Player and Shift Access
-        var (player, failure) = await ValidatePlayerAccess(playerId, shiftId);
+        var (player, failure) = await ValidatePlayerAccess(playerId);
         if (failure != null)
             return failure;
+
+        int shiftId = Convert.ToInt32(player.CurrentShiftId);
 
         // 2. Validate Beat exists and belongs to the shift
         var beat = await unitOfWork.GetRepository<StoryBeat>()
@@ -141,15 +143,15 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         };
         return Result.Success(narrativeFlowDto);
     }
-    public async Task<Result<Object>> EndShift(int playerId, int shiftId)
+    public async Task<Result<Object>> EndShift(int playerId)
     {
         // 1. Validate Player and Shift Access
-        var (player, failure) = await ValidatePlayerAccess(playerId, shiftId);
+        var (player, failure) = await ValidatePlayerAccess(playerId);
         if (failure != null)
             return failure;
         
         var shiftProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
-            .FindAsync(ps => ps.PlayerId == playerId && ps.ShiftId == shiftId);
+            .FindAsync(ps => ps.PlayerId == playerId && ps.ShiftId == player.CurrentShiftId);
         
         if (shiftProgress == null)
             return Result.Failure(NarrativeErrors.ShiftNotFound);
@@ -682,10 +684,10 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
     // Private helpers — Runtime
     // ═══════════════════════════════════════════════════════════════════════
 
-    private async Task<(Shift? shift, Result<NarrativeFlowDto>? failure)> GetShiftEntityForRuntime(int shiftId)
+    private async Task<(Shift? shift, Result<NarrativeFlowDto>? failure)> GetShiftEntityForRuntime(Player player)
     {
         var shift = await unitOfWork.GetRepository<Shift>()
-            .FindAsync(s => s.ShiftId == shiftId);
+            .FindAsync(s => s.ShiftId == player.CurrentShiftId);
 
         if (shift == null)
             return (null, Result.Failure<NarrativeFlowDto>(NarrativeErrors.ShiftNotFound));
@@ -753,16 +755,13 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
     }
 
     private async Task<(Player?, Result<NarrativeFlowDto>?)> ValidatePlayerAccess(
-        int playerId, int shiftId)
+        int playerId)
     {
         var player = await unitOfWork.GetRepository<Player>()
-            .FindAsync(p => p.PlayerId == playerId,["CurrentShift"]);
+            .FindAsync(p => p.PlayerId == playerId);
 
         if (player == null)
             return (null, Result.Failure<NarrativeFlowDto>(ChoiceErrors.PlayerNotFound));
-
-        if (player.CurrentShiftId != shiftId)
-            return (null, Result.Failure<NarrativeFlowDto>(ChoiceErrors.ShiftMismatch));
 
         return (player, null);
     }

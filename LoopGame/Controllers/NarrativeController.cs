@@ -25,18 +25,18 @@ public class NarrativeController(
     /// Starts a shift for a player and loads the full narrative flow
     /// (merging standard narrative beats with pending consequence beats).
     /// </summary>
-    [HttpPost("{playerId:int}/shifts/{shiftId:int}/start")]
-    public async Task<ActionResult<NarrativeFlowDto>> StartShift(int playerId, int shiftId)
-        => await Handle(_narrative.StartShift(playerId, shiftId));
+    [HttpPost("{playerId:int}/shifts/start")]
+    public async Task<ActionResult<NarrativeFlowDto>> StartShift(int playerId)
+        => await Handle(_narrative.StartShift(playerId));
 
-    [HttpPost("{playerId:int}/shifts/{shiftId:int}/{beatId:int}/save")]
-    public async Task<ActionResult<NarrativeFlowDto>> Save(int playerId, int shiftId, int beatId)
-        => await Handle(_narrative.Save(playerId, shiftId, beatId));
+    [HttpPost("{playerId:int}/shifts/{beatId:int}/save")]
+    public async Task<ActionResult<NarrativeFlowDto>> Save(int playerId, int beatId)
+        => await Handle(_narrative.Save(playerId, beatId));
 
-    [HttpPost("{playerId:int}/shifts/{shiftId:int}/end")]
-    public async Task<ActionResult<Object>> EndShift(int playerId, int shiftId)
+    [HttpPost("{playerId:int}/shifts/end")]
+    public async Task<ActionResult<Object>> EndShift(int playerId)
     {
-        var result = await _narrative.EndShift(playerId, shiftId);
+        var result = await _narrative.EndShift(playerId);
 
         if (result.IsFailure)
             return BadRequest(result.Error);
