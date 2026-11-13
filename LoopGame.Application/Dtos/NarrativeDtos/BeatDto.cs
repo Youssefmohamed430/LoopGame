@@ -17,6 +17,8 @@ public class BeatDto
 
     public decimal   DelaySeconds   { get; set; } = 0m;
     public bool      HasChoices     { get; set; } = false;
+    public int?      PlayerId       { get; set; }
+    public bool      IsAiGenerated  { get; set; } = false;
     public DateTime  CreatedAt      { get; set; } = DateTime.UtcNow;
     public List<ChoiceDto>? Choices { get; set; }   
 }

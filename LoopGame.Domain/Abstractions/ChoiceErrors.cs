@@ -14,4 +14,8 @@ public static class ChoiceErrors
     public static readonly Error InvalidChoiceText    = new("Choice.InvalidChoiceText", "Choice text cannot be empty.");
     public static readonly Error InvalidConsequence   = new("Choice.InvalidConsequence", "The specified consequence does not exist.");
     public static readonly Error NotAllowedToAddChoice = new("Choice.NotAllowedToAddChoice", "Beat not allowed to add Choices");
+    public static readonly Error ForbiddenAccess      = new("Forbidden.Access", "You are not allowed to access this choice or story beat.");
+    public static readonly Error DynamicBeatForbidden = new("Choice.DynamicBeatForbidden", "Choices on AI-generated or player-owned story beats cannot be modified through canonical content management.");
+    public static readonly Error DuplicateChoiceSubmission = new("Choice.DuplicateSubmission", "A choice has already been submitted for this story beat.");
+    public static readonly Error ShiftProgressNotFound = new("Choice.ShiftProgressNotFound", "Player shift progress record was not found for the current shift.");
 }

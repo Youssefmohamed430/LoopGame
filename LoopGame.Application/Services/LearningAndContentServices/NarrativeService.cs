@@ -16,162 +16,239 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
 
     public async Task<Result<NarrativeFlowDto>> StartShift(int playerId)
     {
-        // 1. Validate Player and Shift Access
-        var (player, failure) = await ValidatePlayerAccess(playerId);
-        if (failure != null)
-            return failure;
+        // 1. Validate Player and current Shift
+        var (player, playerError) = await ValidatePlayerAccess(playerId);
+        if (playerError != null)
+            return playerError;
 
-        // 2. Get Shift
-        var (shift, failure1) = await GetShiftEntityForRuntime(player);
-        if (failure1 != null)
-            return failure1;
+        var (shift, shiftError) = await GetShiftEntityForRuntime(player!);
+        if (shiftError != null)
+            return shiftError;
 
-        // 3. Fetch standard narrative beats for this shift (ordered by sequence_order)
-        var beatsDto = GetNarrativeBeats(shift.ShiftId);
+        // 2. Fetch canonical and player-owned narrative beats for this shift (ordered by sequence_order)
+        var narrativeBeats = GetNarrativeBeats(shift!.ShiftId, playerId);
 
-        // 4. Fetch pending consequence beats targeted for this shift
-        var pendingConsequences = GetPendingConsequences(playerId, shift.ShiftId);
-
-        // 5. Categorize consequences by InjectPosition ('start' vs 'end') and mark them as fired
-        var (startConsequenceBeats, endConsequenceBeats) =
-            await CategorizeConsequencesByInjectPosition(pendingConsequences);
-
-        // 6. Merge: [Start Consequences] -> [Standard Narrative Beats] -> [End Consequences]
-        var mergedBeats = MergeBeats(startConsequenceBeats, beatsDto, endConsequenceBeats);
-
-        // - Add PlayerShiftProgress & PlayerSave if not already present
+        // 3. Check whether this player already has progress on this shift
         var playerShiftProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
-                                        .FindAsync(p => p.PlayerId == playerId && p.ShiftId == shift.ShiftId);
+            .FindAsync(p => p.PlayerId == playerId && p.ShiftId == shift.ShiftId);
+
+        List<BeatDto> resultBeats;
 
         if (playerShiftProgress == null)
         {
+            // First start for this shift: fire pending consequence beats targeted to this shift
+            var pendingConsequences = GetPendingConsequences(playerId, shift.ShiftId);
+            var (startConsequenceBeats, endConsequenceBeats) =
+                await CategorizeConsequencesByInjectPosition(pendingConsequences);
+
+            resultBeats = MergeBeats(startConsequenceBeats, narrativeBeats, endConsequenceBeats);
+
             var newProgress = new PlayerShiftProgress
             {
-                PlayerId = playerId,
-                ShiftId  = shift.ShiftId,
-                Status   = ShiftProgressStatus.InProgress,
+                PlayerId  = playerId,
+                ShiftId   = shift.ShiftId,
+                Status    = ShiftProgressStatus.InProgress,
                 StartedAt = DateTime.UtcNow
             };
-
-            var PlayerSave = new PlayerSave
-            {
-                PlayerId = playerId,
-                BeatId  = mergedBeats.First().BeatId,
-                SaveLabel = "Auto-save at shift start",
-            };
             await unitOfWork.GetRepository<PlayerShiftProgress>().AddAsync(newProgress);
-            await unitOfWork.GetRepository<PlayerSave>().AddAsync(PlayerSave);
+
+            if (resultBeats.Count > 0)
+            {
+                var existingSave = await unitOfWork.GetRepository<PlayerSave>()
+                    .FindAsync(ps => ps.PlayerId == playerId);
+
+                if (existingSave == null)
+                {
+                    var playerSave = new PlayerSave
+                    {
+                        PlayerId  = playerId,
+                        BeatId    = resultBeats[0].BeatId,
+                        SaveLabel = "Auto-save at shift start",
+                        SavedAt   = DateTime.UtcNow
+                    };
+                    await unitOfWork.GetRepository<PlayerSave>().AddAsync(playerSave);
+                }
+                else
+                {
+                    existingSave.BeatId    = resultBeats[0].BeatId;
+                    existingSave.SaveLabel = "Auto-save at shift start";
+                    existingSave.SavedAt   = DateTime.UtcNow;
+                }
+            }
+
+            await unitOfWork.SaveAsync();
         }
         else
         {
-            var playerSave = await unitOfWork.GetRepository<PlayerSave>()
-                .FindAsync(ps => ps.PlayerId == playerId);
+            // Mid-shift resume: do not fire new consequences; resume from saved beat within this shift
+            var savedBeatId = unitOfWork.GetRepository<PlayerSave>()
+                .FindAll(ps => ps.PlayerId == playerId &&
+                               ps.Beat != null &&
+                               ps.Beat.ShiftId == shift.ShiftId &&
+                               (ps.Beat.PlayerId == null || ps.Beat.PlayerId == playerId))
+                .OrderByDescending(ps => ps.SavedAt)
+                .ThenByDescending(ps => ps.SaveId)
+                .Select(ps => (int?)ps.BeatId)
+                .FirstOrDefault();
 
-            var targetBeatId = playerSave?.BeatId;
-            var index = mergedBeats
-                .OrderBy(b => b.SequenceOrder)
-                .ToList()
-                .FindIndex(b => b.BeatId == targetBeatId);;
+            var savedBeat = savedBeatId.HasValue
+                ? unitOfWork.GetRepository<StoryBeat>()
+                    .FindAll(b => b.BeatId == savedBeatId.Value, ["Choices", "Consequence"])
+                    .FirstOrDefault()
+                : null;
 
-            if (index >= 0)
-                mergedBeats = mergedBeats.Skip(index).ToList();
+            resultBeats = savedBeat != null
+                ? BuildResumeBeats(savedBeat, narrativeBeats)
+                : narrativeBeats;
         }
-
-            // 7. Save changes & construct response DTO using Mapster
-            await unitOfWork.SaveAsync();
 
         var narrativeFlowDto = new NarrativeFlowDto
         {
-            ShiftId = shift!.ShiftId,
+            ShiftId = shift.ShiftId,
             Shift   = shift.Adapt<ShiftDto>(),
-            Beats   = mergedBeats
+            Beats   = resultBeats
         };
 
         return Result.Success(narrativeFlowDto);
     }
+
     public async Task<Result<NarrativeFlowDto>> Save(int playerId, int beatId)
     {
-        // 1. Validate Player and Shift Access
-        var (player, failure) = await ValidatePlayerAccess(playerId);
-        if (failure != null)
-            return failure;
+        if (beatId <= 0)
+            return ChoiceErrors.InvalidId;
 
-        int shiftId = Convert.ToInt32(player.CurrentShiftId);
+        // 1. Validate Player and current Shift
+        var (player, playerError) = await ValidatePlayerAccess(playerId);
+        if (playerError != null)
+            return playerError;
 
-        // 2. Validate Beat exists and belongs to the shift
-        var beat = await unitOfWork.GetRepository<StoryBeat>()
-            .FindAsync(b => b.BeatId == beatId && b.ShiftId == shiftId);
+        var (shift, shiftError) = await GetShiftEntityForRuntime(player!);
+        if (shiftError != null)
+            return shiftError;
+
+        // 2. Validate Beat exists, is accessible to this player, and belongs to the current shift
+        var beat = unitOfWork.GetRepository<StoryBeat>()
+            .FindAll(b => b.BeatId == beatId, ["Choices", "Consequence"])
+            .FirstOrDefault();
+
         if (beat == null)
             return Result.Failure<NarrativeFlowDto>(NarrativeErrors.BeatNotFound);
 
-        // 3. Update PlayerSave to this beat
+        if (beat.PlayerId.HasValue && beat.PlayerId.Value != playerId)
+            return Result.Failure<NarrativeFlowDto>(NarrativeErrors.BeatAccessForbidden);
+
+        if (beat.ShiftId != shift!.ShiftId)
+            return Result.Failure<NarrativeFlowDto>(ChoiceErrors.ShiftMismatch);
+
+        // 3. Upsert PlayerSave on tracked scalar entity
         var playerSave = await unitOfWork.GetRepository<PlayerSave>()
             .FindAsync(ps => ps.PlayerId == playerId);
+        var now = DateTime.UtcNow;
+
         if (playerSave == null)
         {
             playerSave = new PlayerSave
             {
-                PlayerId = playerId,
-                BeatId   = beatId,
-                SaveLabel = "Auto-save"
+                PlayerId  = playerId,
+                BeatId    = beatId,
+                SaveLabel = "Auto-save",
+                SavedAt   = now
             };
             await unitOfWork.GetRepository<PlayerSave>().AddAsync(playerSave);
         }
         else
         {
-            playerSave.BeatId = beatId;
-            await unitOfWork.GetRepository<PlayerSave>().UpdateAsync(playerSave);
+            playerSave.BeatId    = beatId;
+            playerSave.SaveLabel = "Auto-save";
+            playerSave.SavedAt   = now;
         }
         await unitOfWork.SaveAsync();
 
-        var targetBeatId = playerSave?.BeatId;
-        var shiftBeats = GetNarrativeBeats(shiftId);
-        var index = shiftBeats
-            .OrderBy(b => b.SequenceOrder)
-            .ToList()
-            .FindIndex(b => b.BeatId == targetBeatId);
+        // 4. Return remaining narrative flow from the saved beat
+        var narrativeBeats = GetNarrativeBeats(shift.ShiftId, playerId);
+        var resumeBeats = BuildResumeBeats(beat, narrativeBeats);
 
-            if (index >= 0)
-            shiftBeats = shiftBeats.Skip(index).ToList();
-
-        // 4. Return updated narrative flow with current beat
         var narrativeFlowDto = new NarrativeFlowDto
         {
-            ShiftId = shiftId,
-            Shift   = (await unitOfWork.GetRepository<Shift>().FindAsync(s => s.ShiftId == shiftId))!.Adapt<ShiftDto>(),
-            Beats   = shiftBeats
+            ShiftId = shift.ShiftId,
+            Shift   = shift.Adapt<ShiftDto>(),
+            Beats   = resumeBeats
         };
         return Result.Success(narrativeFlowDto);
     }
-    public async Task<Result<Object>> EndShift(int playerId)
+
+    public async Task<Result<object>> EndShift(int playerId)
     {
-        // 1. Validate Player and Shift Access
-        var (player, failure) = await ValidatePlayerAccess(playerId);
-        if (failure != null)
-            return failure;
-        
+        // 1. Validate Player and current Shift
+        var (player, playerError) = await ValidatePlayerAccess(playerId);
+        if (playerError != null)
+            return Result.Failure<object>(playerError);
+
+        if (!player!.CurrentShiftId.HasValue || player.CurrentShiftId.Value <= 0)
+            return Result.Failure<object>(NarrativeErrors.ShiftNotFound);
+
+        int currentShiftId = player.CurrentShiftId.Value;
+
+        var currentShift = await unitOfWork.GetRepository<Shift>()
+            .FindAsync(s => s.ShiftId == currentShiftId);
+
+        if (currentShift == null)
+            return Result.Failure<object>(NarrativeErrors.ShiftNotFound);
+
         var shiftProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
-            .FindAsync(ps => ps.PlayerId == playerId && ps.ShiftId == player.CurrentShiftId);
-        
+            .FindAsync(ps => ps.PlayerId == playerId && ps.ShiftId == currentShiftId);
+
         if (shiftProgress == null)
-            return Result.Failure(NarrativeErrors.ShiftNotFound);
+            return Result.Failure<object>(NarrativeErrors.ShiftNotFound);
 
         if (!shiftProgress.IsGateCleared)
-            return Result.Failure(NarrativeErrors.ShiftNotCompleted);
+            return Result.Failure<object>(NarrativeErrors.ShiftNotCompleted);
 
-        var nextshift = await unitOfWork.GetRepository<Shift>()
-            .FindAsync(s => s.ShiftNumber == player.CurrentShift.ShiftNumber + 1);
+        // 2. Advance to the next shift ordered by (ChapterNumber, ShiftNumber), or clear on final shift
+        var nextShiftId = unitOfWork.GetRepository<Shift>()
+            .FindAll(s => s.ChapterNumber > currentShift.ChapterNumber ||
+                          (s.ChapterNumber == currentShift.ChapterNumber && s.ShiftNumber > currentShift.ShiftNumber))
+            .OrderBy(s => s.ChapterNumber)
+            .ThenBy(s => s.ShiftNumber)
+            .Select(s => (int?)s.ShiftId)
+            .FirstOrDefault();
 
-        player.CurrentShiftId = nextshift.ShiftId;
-        await unitOfWork.GetRepository<Player>().UpdateAsync(player);
-        
-        var playersave = await unitOfWork.GetRepository<PlayerSave>()
-            .FindAsync(ps => ps.PlayerId == playerId);
+        if (nextShiftId.HasValue)
+        {
+            player.CurrentShiftId = nextShiftId.Value;
 
-        playersave.BeatId = 1;
-        await unitOfWork.GetRepository<PlayerSave>().UpdateAsync(playersave);
+            var nextFirstBeatId = unitOfWork.GetRepository<StoryBeat>()
+                .FindAll(b => b.ShiftId == nextShiftId.Value &&
+                              b.BeatType == BeatType.Narrative &&
+                              b.PlayerId == null)
+                .OrderBy(b => b.SequenceOrder)
+                .Select(b => (int?)b.BeatId)
+                .FirstOrDefault();
+
+            var playerSave = await unitOfWork.GetRepository<PlayerSave>()
+                .FindAsync(ps => ps.PlayerId == playerId);
+
+            if (playerSave != null)
+            {
+                if (nextFirstBeatId.HasValue)
+                {
+                    playerSave.BeatId    = nextFirstBeatId.Value;
+                    playerSave.SaveLabel = "Auto-save at shift transition";
+                    playerSave.SavedAt   = DateTime.UtcNow;
+                }
+                else
+                {
+                    unitOfWork.GetRepository<PlayerSave>().Delete(playerSave);
+                }
+            }
+        }
+        else
+        {
+            player.CurrentShiftId = null;
+        }
+
         await unitOfWork.SaveAsync();
-        return Result.Success(new { msg = "End Shift Success!"  });
+        return Result.Success<object>(new { msg = "End Shift Success!" });
     }
     // ═══════════════════════════════════════════════════════════════════════
     // Shift Management (Admin)
@@ -354,11 +431,13 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
             if (!dto.SequenceOrder.HasValue)
                 return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderRequiredForNarrativeBeat);
 
-            // Check for sequence order conflict in the target shift
+            // Check for sequence order conflict in the target shift among canonical beats only
             var seqConflict = await unitOfWork.GetRepository<StoryBeat>()
                 .FindAsync(b => b.ShiftId       == dto.ShiftId &&
                                 b.BeatType      == BeatType.Narrative &&
-                                b.SequenceOrder == dto.SequenceOrder.Value);
+                                b.SequenceOrder == dto.SequenceOrder.Value &&
+                                b.PlayerId      == null &&
+                                !b.IsAiGenerated);
 
             if (seqConflict != null)
                 return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderConflict);
@@ -378,17 +457,20 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         {
             var beat = new StoryBeat
             {
-                ShiftId       = dto.ShiftId,
-                BeatKey       = dto.BeatKey.Trim(),
-                BeatType      = dto.BeatType,
-                SequenceOrder = dto.BeatType == BeatType.Narrative ? dto.SequenceOrder : null,
-                App           = dto.App,
-                SenderName    = dto.SenderName,
-                ContentJson   = dto.ContentJson,
-                DesktopEvent  = dto.DesktopEvent,
-                DelaySeconds  = dto.DelaySeconds,
-                HasChoices    = dto.HasChoices,
-                CreatedAt     = DateTime.UtcNow
+                ShiftId         = dto.ShiftId,
+                BeatKey         = dto.BeatKey.Trim(),
+                BeatType        = dto.BeatType,
+                SequenceOrder   = dto.BeatType == BeatType.Narrative ? dto.SequenceOrder : null,
+                App             = dto.App,
+                SenderName      = dto.SenderName,
+                ContentJson     = dto.ContentJson,
+                DesktopEvent    = dto.DesktopEvent,
+                DelaySeconds    = dto.DelaySeconds,
+                HasChoices      = dto.HasChoices,
+                PlayerId        = null,
+                IsAiGenerated   = false,
+                GenerationLogId = null,
+                CreatedAt       = DateTime.UtcNow
             };
 
             await unitOfWork.GetRepository<StoryBeat>().AddAsync(beat);
@@ -429,6 +511,9 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         if (beat == null)
             return Result.Failure<BeatDto>(NarrativeErrors.BeatNotFound);
 
+        if (beat.IsAiGenerated || beat.PlayerId != null)
+            return Result.Failure<BeatDto>(NarrativeErrors.DynamicBeatForbidden);
+
         return Result.Success(beat.Adapt<BeatDto>());
     }
 
@@ -440,10 +525,13 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         if (beat == null)
             return Result.Failure<BeatDto>(NarrativeErrors.BeatNotFound);
 
+        if (beat.IsAiGenerated || beat.PlayerId != null)
+            return Result.Failure<BeatDto>(NarrativeErrors.DynamicBeatForbidden);
+
         // Determine effective values after applying dto
-        int    targetShiftId      = dto.ShiftId       ?? beat.ShiftId;
-        BeatType targetBeatType   = dto.BeatType      ?? beat.BeatType;
-        int?   targetSequenceOrder = dto.SequenceOrder ?? beat.SequenceOrder;
+        int      targetShiftId       = dto.ShiftId       ?? beat.ShiftId;
+        BeatType targetBeatType      = dto.BeatType      ?? beat.BeatType;
+        int?     targetSequenceOrder = dto.SequenceOrder ?? beat.SequenceOrder;
 
         // Validate target shift
         if (dto.ShiftId.HasValue && dto.ShiftId.Value != beat.ShiftId)
@@ -473,10 +561,10 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
             if (!targetSequenceOrder.HasValue)
                 return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderRequiredForNarrativeBeat);
 
-            // Check for sequence conflict — exclude this beat itself
-            bool orderChanging = dto.SequenceOrder.HasValue &&
-                                 (dto.SequenceOrder.Value != beat.SequenceOrder ||
-                                  targetShiftId           != beat.ShiftId);
+            // Check for canonical sequence conflict — exclude this beat itself
+            bool orderChanging = targetBeatType != beat.BeatType ||
+                                 (dto.SequenceOrder.HasValue && dto.SequenceOrder.Value != beat.SequenceOrder) ||
+                                 targetShiftId != beat.ShiftId;
 
             if (orderChanging)
             {
@@ -484,6 +572,8 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
                     .FindAsync(b => b.ShiftId       == targetShiftId       &&
                                     b.BeatType      == BeatType.Narrative  &&
                                     b.SequenceOrder == targetSequenceOrder &&
+                                    b.PlayerId      == null                &&
+                                    !b.IsAiGenerated                       &&
                                     b.BeatId        != beatId);
 
                 if (seqConflict != null)
@@ -492,9 +582,9 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         }
         else // Consequence
         {
-            // Consequence beats must not have a SequenceOrder
-            if (targetSequenceOrder.HasValue)
-                return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderRequiredForNarrativeBeat);
+            // Explicitly passing a SequenceOrder on a Consequence beat is invalid
+            if (dto.SequenceOrder.HasValue)
+                return Result.Failure<BeatDto>(NarrativeErrors.SequenceOrderNotRequiredForConsequenceBeat);
 
             // Validate InjectPosition if being changed
             if (dto.InjectPosition != null &&
@@ -548,16 +638,24 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
 
             await unitOfWork.GetRepository<StoryBeat>().UpdateAsync(beat);
 
-            // Update the Consequence row's InjectPosition if applicable
-            if (beat.BeatType == BeatType.Consequence && dto.InjectPosition != null)
+            // Update or create the Consequence row if applicable
+            if (beat.BeatType == BeatType.Consequence)
             {
                 var consequence = unitOfWork.GetRepository<Consequence>()
                     .FindWithTracking(c => c.BeatId == beatId);
 
-                if (consequence != null)
+                if (consequence != null && dto.InjectPosition != null)
                 {
                     consequence.InjectPosition = dto.InjectPosition;
                     await unitOfWork.GetRepository<Consequence>().UpdateAsync(consequence);
+                }
+                else if (consequence == null)
+                {
+                    await unitOfWork.GetRepository<Consequence>().AddAsync(new Consequence
+                    {
+                        BeatId         = beatId,
+                        InjectPosition = dto.InjectPosition ?? "start"
+                    });
                 }
             }
 
@@ -583,6 +681,9 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
 
         if (beat == null)
             return Result.Failure(NarrativeErrors.BeatNotFound);
+
+        if (beat.IsAiGenerated || beat.PlayerId != null)
+            return Result.Failure(NarrativeErrors.DynamicBeatForbidden);
 
         // Guard 1: beats with choices that themselves reference consequences cannot be blindly deleted.
         // Choice -> StoryBeat is Cascade (EF will cascade from Beat), but we still verify
@@ -636,6 +737,9 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
         if (beat == null)
             return Result.Failure<BeatDto>(NarrativeErrors.BeatNotFound);
 
+        if (beat.IsAiGenerated || beat.PlayerId != null)
+            return Result.Failure<BeatDto>(NarrativeErrors.DynamicBeatForbidden);
+
         if (beat.ShiftId == shiftId)
             return Result.Failure<BeatDto>(NarrativeErrors.BeatAlreadyInShift);
 
@@ -657,13 +761,15 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
                 return Result.Failure<BeatDto>(NarrativeErrors.ConsequenceBeatCannotChangeShift);
         }
 
-        // For narrative beats: check for sequence order conflict in the target shift
+        // For canonical narrative beats: check for sequence order conflict in the target shift
         if (beat.BeatType == BeatType.Narrative && beat.SequenceOrder.HasValue)
         {
             var seqConflict = await unitOfWork.GetRepository<StoryBeat>()
                 .FindAsync(b => b.ShiftId       == shiftId          &&
                                 b.BeatType      == BeatType.Narrative &&
                                 b.SequenceOrder == beat.SequenceOrder &&
+                                b.PlayerId      == null             &&
+                                !b.IsAiGenerated                    &&
                                 b.BeatId        != beatId);
 
             if (seqConflict != null)
@@ -684,34 +790,48 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
     // Private helpers — Runtime
     // ═══════════════════════════════════════════════════════════════════════
 
-    private async Task<(Shift? shift, Result<NarrativeFlowDto>? failure)> GetShiftEntityForRuntime(Player player)
+    private async Task<(Shift? shift, Error? error)> GetShiftEntityForRuntime(Player player)
     {
+        if (!player.CurrentShiftId.HasValue || player.CurrentShiftId.Value <= 0)
+            return (null, NarrativeErrors.ShiftNotFound);
+
         var shift = await unitOfWork.GetRepository<Shift>()
-            .FindAsync(s => s.ShiftId == player.CurrentShiftId);
+            .FindAsync(s => s.ShiftId == player.CurrentShiftId.Value);
 
         if (shift == null)
-            return (null, Result.Failure<NarrativeFlowDto>(NarrativeErrors.ShiftNotFound));
+            return (null, NarrativeErrors.ShiftNotFound);
 
         return (shift, null);
     }
 
-    private List<BeatDto> GetNarrativeBeats(int shiftId)
+    private List<BeatDto> GetNarrativeBeats(int shiftId, int playerId)
     {
         var narrativeBeats = unitOfWork.GetRepository<StoryBeat>()
-            .FindAll(sb => sb.ShiftId == shiftId && sb.BeatType == BeatType.Narrative, ["Choices"])
+            .FindAll(
+                sb => sb.ShiftId == shiftId &&
+                      sb.BeatType == BeatType.Narrative &&
+                      (sb.PlayerId == null || sb.PlayerId == playerId),
+                ["Choices"])
             .OrderBy(sb => sb.SequenceOrder)
             .ToList();
 
-        return narrativeBeats.Adapt<List<BeatDto>>();
+        var dtos = narrativeBeats.Adapt<List<BeatDto>>();
+        foreach (var dto in dtos)
+            OrderBeatChoices(dto);
+
+        return dtos;
     }
 
     private List<ConsequenceQueue> GetPendingConsequences(int playerId, int shiftId)
     {
         return unitOfWork.GetRepository<ConsequenceQueue>()
-            .FindAll(cq => cq.PlayerId == playerId &&
-                           cq.Status   == ConsequenceStatus.pending &&
-                           cq.Consequence.Beat.ShiftId == shiftId,
-                     ["Consequence", "Consequence.Beat", "Consequence.Beat.Choices"])
+            .FindAll(
+                cq => cq.PlayerId == playerId &&
+                      cq.Status == ConsequenceStatus.pending &&
+                      cq.Consequence.Beat.ShiftId == shiftId &&
+                      (cq.Consequence.Beat.PlayerId == null || cq.Consequence.Beat.PlayerId == playerId),
+                ["Consequence", "Consequence.Beat", "Consequence.Beat.Choices"])
+            .OrderBy(cq => cq.QueueId)
             .ToList();
     }
 
@@ -732,12 +852,13 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
     {
         var startBeats = new List<BeatDto>();
         var endBeats   = new List<BeatDto>();
+        var firedAt    = DateTime.UtcNow;
 
         foreach (var cq in pendingConsequences)
         {
             if (cq.Consequence?.Beat != null)
             {
-                var beatDto = cq.Consequence.Beat.Adapt<BeatDto>();
+                var beatDto = OrderBeatChoices(cq.Consequence.Beat.Adapt<BeatDto>());
 
                 if (string.Equals(cq.Consequence.InjectPosition, "end",
                         StringComparison.OrdinalIgnoreCase))
@@ -746,22 +867,57 @@ public class NarrativeService(IUnitOfWork unitOfWork) : INarrativeService
                     startBeats.Add(beatDto);
             }
 
-            cq.Status  = ConsequenceStatus.fired;
-            cq.FiredAt = DateTime.UtcNow;
-            await unitOfWork.GetRepository<ConsequenceQueue>().UpdateAsync(cq);
+            // Load only the scalar queue row for tracking so EF does not walk and mark
+            // the untracked Include graph (Consequence/Beat/Choices) as Modified.
+            var trackedQueue = await unitOfWork.GetRepository<ConsequenceQueue>()
+                .FindAsync(q => q.QueueId == cq.QueueId);
+
+            if (trackedQueue != null)
+            {
+                trackedQueue.Status  = ConsequenceStatus.fired;
+                trackedQueue.FiredAt = firedAt;
+            }
         }
 
         return (startBeats, endBeats);
     }
 
-    private async Task<(Player?, Result<NarrativeFlowDto>?)> ValidatePlayerAccess(
-        int playerId)
+    private static List<BeatDto> BuildResumeBeats(StoryBeat savedBeat, List<BeatDto> narrativeBeats)
     {
+        if (savedBeat.BeatType == BeatType.Narrative)
+        {
+            int index = narrativeBeats.FindIndex(b => b.BeatId == savedBeat.BeatId);
+            return index >= 0 ? narrativeBeats.Skip(index).ToList() : narrativeBeats;
+        }
+
+        var savedBeatDto = OrderBeatChoices(savedBeat.Adapt<BeatDto>());
+
+        if (string.Equals(savedBeat.Consequence?.InjectPosition, "end", StringComparison.OrdinalIgnoreCase))
+            return [savedBeatDto];
+
+        var resumed = new List<BeatDto>(1 + narrativeBeats.Count) { savedBeatDto };
+        resumed.AddRange(narrativeBeats);
+        return resumed;
+    }
+
+    private static BeatDto OrderBeatChoices(BeatDto beatDto)
+    {
+        if (beatDto.Choices != null)
+            beatDto.Choices = beatDto.Choices.OrderBy(c => c.ChoiceIndex).ToList();
+
+        return beatDto;
+    }
+
+    private async Task<(Player? player, Error? error)> ValidatePlayerAccess(int playerId)
+    {
+        if (playerId <= 0)
+            return (null, ChoiceErrors.InvalidId);
+
         var player = await unitOfWork.GetRepository<Player>()
             .FindAsync(p => p.PlayerId == playerId);
 
         if (player == null)
-            return (null, Result.Failure<NarrativeFlowDto>(ChoiceErrors.PlayerNotFound));
+            return (null, ChoiceErrors.PlayerNotFound);
 
         return (player, null);
     }

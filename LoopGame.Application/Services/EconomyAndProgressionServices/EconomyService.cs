@@ -179,9 +179,11 @@ public class EconomyService(
                 return Result.Failure<decimal>(EconomyErrors.PlayerNotFound);
             }
 
-            // (c) Tier distribution of the shift's choices, aggregated server-side.
+            // (c) Tier distribution of the shift's choices, aggregated server-side (excluding AI beats).
             var tierCounts = await _uow.GetRepository<PlayerChoice>()
-                .FindAll(pc => pc.PlayerId == playerId && pc.Beat.ShiftId == shiftId)
+                .FindAll(pc => pc.PlayerId == playerId &&
+                               pc.Beat.ShiftId == shiftId &&
+                               !pc.Beat.IsAiGenerated)
                 .GroupBy(pc => pc.Tier)
                 .Select(g => new { g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Key, x => x.Count, ct);

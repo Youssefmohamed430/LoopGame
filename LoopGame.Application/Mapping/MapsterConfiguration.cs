@@ -74,15 +74,16 @@ public class MapsterConfiguration : IRegister
         // Shift → ShiftDetailDto
         // NarrativeBeats and ConsequenceBeats are derived from the same StoryBeats collection
         // using filtering + ordering — Mapster handles this via the custom Map() expressions.
+        // Only canonical (non-AI, unowned) beats are exposed in canonical shift detail views.
         config.NewConfig<Shift, ShiftDetailDto>()
             .Map(dest => dest.NarrativeBeats,
                 src => src.StoryBeats
-                    .Where(b => b.BeatType == BeatType.Narrative)
+                    .Where(b => b.PlayerId == null && !b.IsAiGenerated && b.BeatType == BeatType.Narrative)
                     .OrderBy(b => b.SequenceOrder)
                     .Adapt<List<BeatDto>>())
             .Map(dest => dest.ConsequenceBeats,
                 src => src.StoryBeats
-                    .Where(b => b.BeatType == BeatType.Consequence)
+                    .Where(b => b.PlayerId == null && !b.IsAiGenerated && b.BeatType == BeatType.Consequence)
                     .Adapt<List<BeatDto>>());
 
         config.NewConfig<StoryBeat, BeatDto>();

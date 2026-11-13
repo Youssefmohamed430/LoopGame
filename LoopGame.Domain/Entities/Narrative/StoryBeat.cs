@@ -9,6 +9,7 @@ public class StoryBeat
 {
     public int       BeatId         { get; set; }
     public int       ShiftId        { get; set; }
+    public int?      PlayerId       { get; set; }
     public string    BeatKey        { get; set; } = string.Empty;
     public BeatType  BeatType       { get; set; } = BeatType.Narrative;
     public int?      SequenceOrder  { get; set; }
@@ -23,11 +24,15 @@ public class StoryBeat
 
     public decimal   DelaySeconds   { get; set; } = 0m;
     public bool      HasChoices     { get; set; } = false;
+    public bool      IsAiGenerated  { get; set; } = false;
+    public int?      GenerationLogId { get; set; }
     public DateTime  CreatedAt      { get; set; } = DateTime.UtcNow;
 
     // Navigation
-    public Shift                  Shift       { get; set; } = null!;
-    public ICollection<Choice>    Choices     { get; set; } = [];
-    public ICollection<PlayerSave> PlayerSaves { get; set; } = [];
-    public Consequence?           Consequence { get; set; }
+    public Shift                       Shift         { get; set; } = null!;
+    public Player.Player?              Player        { get; set; }
+    public NarrativeGenerationLog?     GenerationLog { get; set; }
+    public ICollection<Choice>         Choices       { get; set; } = [];
+    public ICollection<PlayerSave>     PlayerSaves   { get; set; } = [];
+    public Consequence?                Consequence   { get; set; }
 }

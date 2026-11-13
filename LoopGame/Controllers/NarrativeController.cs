@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using LoopGame.Extensions;
 using Microsoft.AspNetCore.Authorization;
 
@@ -7,12 +8,6 @@ namespace LoopGame.Controllers;
 /// Player Narrative and Choice Endpoints — Shift Start, Flow Loading, and Choice Submission.
 ///
 /// All endpoints here are for **Player** role use during active gameplay shifts.
-///
-/// Authorization: TODO — once the RBAC pipeline lands, gate these endpoints
-/// with [Authorize(Roles = "Player")] (or the project's equivalent policy).
-///
-/// TODO(identity): replace {playerId} route param with authenticated principal
-/// once the auth pipeline lands.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -27,21 +22,29 @@ public class NarrativeController(
     /// </summary>
     [HttpPost("{playerId:int}/shifts/start")]
     public async Task<ActionResult<NarrativeFlowDto>> StartShift(int playerId)
-        => await Handle(_narrative.StartShift(playerId));
+    {
+        if (!IsAuthorizedForPlayer(playerId))
+            return Forbid();
+
+        return await Handle(_narrative.StartShift(playerId));
+    }
 
     [HttpPost("{playerId:int}/shifts/{beatId:int}/save")]
     public async Task<ActionResult<NarrativeFlowDto>> Save(int playerId, int beatId)
-        => await Handle(_narrative.Save(playerId, beatId));
+    {
+        if (!IsAuthorizedForPlayer(playerId))
+            return Forbid();
+
+        return await Handle(_narrative.Save(playerId, beatId));
+    }
 
     [HttpPost("{playerId:int}/shifts/end")]
-    public async Task<ActionResult<Object>> EndShift(int playerId)
+    public async Task<ActionResult<object>> EndShift(int playerId)
     {
-        var result = await _narrative.EndShift(playerId);
+        if (!IsAuthorizedForPlayer(playerId))
+            return Forbid();
 
-        if (result.IsFailure)
-            return BadRequest(result.Error);
-        
-        return Ok(result.Value);
+        return await Handle(_narrative.EndShift(playerId));
     }
 
     /// <summary>
@@ -49,14 +52,36 @@ public class NarrativeController(
     /// </summary>
     [HttpGet("{playerId:int}/beats/{beatId:int}/choices")]
     public async Task<ActionResult<List<ChoiceDto>>> GetChoices(int playerId, int beatId)
-        => await Handle(_choice.GetChoices(beatId, playerId));
+    {
+        if (!IsAuthorizedForPlayer(playerId))
+            return Forbid();
+
+        return await Handle(_choice.GetChoices(beatId, playerId));
+    }
 
     /// <summary>
     /// Submits a player's choice for a story beat, queuing consequences and updating shift progress.
     /// </summary>
     [HttpPost("{playerId:int}/choices/{choiceId:int}/submit")]
     public async Task<ActionResult<ChoiceDto>> SubmitChoice(int playerId, int choiceId)
-        => await Handle(_choice.SubmitChoice(choiceId, playerId));
+    {
+        if (!IsAuthorizedForPlayer(playerId))
+            return Forbid();
+
+        return await Handle(_choice.SubmitChoice(choiceId, playerId));
+    }
+
+    private bool IsAuthorizedForPlayer(int playerId)
+    {
+        if (User?.Identity?.IsAuthenticated != true)
+            return false;
+
+        if (User.IsInRole("Admin") || User.IsInRole("admin") || User.IsInRole("super_admin"))
+            return true;
+
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(sub, out var authId) && authId == playerId;
+    }
 
     private async Task<ActionResult<T>> Handle<T>(Task<Result<T>> operation)
     {

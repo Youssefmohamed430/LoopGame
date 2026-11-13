@@ -59,18 +59,42 @@ public class StoryBeatConfiguration : IEntityTypeConfiguration<StoryBeat>
                .HasColumnType("timestamp with time zone")
                .HasDefaultValueSql("NOW()");
 
+        builder.Property(b => b.IsAiGenerated)
+               .HasDefaultValue(false)
+               .IsRequired();
+
         // CHECK: narrative beats must have sequence_order; consequence beats must not
         builder.HasCheckConstraint("CHK_Beat_SequenceOrder",
             "(beat_type = 'narrative' AND \"SequenceOrder\" IS NOT NULL) OR " +
             "(beat_type = 'consequence' AND \"SequenceOrder\" IS NULL)");
+
+        // CHECK: AI-generated beats must belong to a specific player (never shared/null PlayerId)
+        builder.HasCheckConstraint("CHK_Beat_AiOwnership",
+            "\"IsAiGenerated\" = false OR \"PlayerId\" IS NOT NULL");
 
         builder.HasOne(b => b.Shift)
                .WithMany(s => s.StoryBeats)
                .HasForeignKey(b => b.ShiftId)
                .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(b => b.Player)
+               .WithMany(p => p.StoryBeats)
+               .HasForeignKey(b => b.PlayerId)
+               .IsRequired(false)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(b => b.GenerationLog)
+               .WithOne(l => l.StoryBeat)
+               .HasForeignKey<StoryBeat>(b => b.GenerationLogId)
+               .IsRequired(false)
+               .OnDelete(DeleteBehavior.SetNull);
+
         // Composite index for sequential narrative beat streaming
         builder.HasIndex(b => new { b.ShiftId, b.BeatType, b.SequenceOrder })
                .HasDatabaseName("IX_Beat_Shift_Seq");
+
+        // Composite index for filtering shared/player-owned beats per shift
+        builder.HasIndex(b => new { b.ShiftId, b.PlayerId })
+               .HasDatabaseName("IX_Beat_Shift_Player");
     }
 }

@@ -50,6 +50,11 @@ public class PlayerShiftProgressConfiguration : IEntityTypeConfiguration<PlayerS
                .HasColumnType("smallint")
                .HasDefaultValue((short)0);
 
+        builder.Property(p => p.SessionContext)
+               .HasMaxLength(PlayerShiftProgress.MaxSessionContextLength)
+               .HasDefaultValue(string.Empty)
+               .IsRequired();
+
         // Composite unique: one progress record per player per shift
         builder.HasIndex(p => new { p.PlayerId, p.ShiftId })
                .IsUnique()

@@ -28,16 +28,21 @@ public class ChoiceService
         if (player == null)
             return Result.Failure<List<ChoiceDto>>(ChoiceErrors.PlayerNotFound);
 
-        var beat = await unitOfWork.GetRepository<StoryBeat>()
-            .FindAsync(b => b.BeatId == beatId, new string[] { "Choices" });
+        var beat = unitOfWork.GetRepository<StoryBeat>()
+            .FindAll(b => b.BeatId == beatId, ["Choices"])
+            .FirstOrDefault();
 
         if (beat == null)
             return Result.Failure<List<ChoiceDto>>(ChoiceErrors.BeatNotFound);
 
-        if (player.CurrentShiftId != beat.ShiftId)
+        if (beat.PlayerId.HasValue && beat.PlayerId.Value != playerId)
+            return Result.Failure<List<ChoiceDto>>(ChoiceErrors.ForbiddenAccess);
+
+        if (!player.CurrentShiftId.HasValue || player.CurrentShiftId.Value != beat.ShiftId)
             return Result.Failure<List<ChoiceDto>>(ChoiceErrors.ShiftMismatch);
 
         var listOfChoices = beat.Choices
+            .OrderBy(c => c.ChoiceIndex)
             .Select(c => c.Adapt<ChoiceDto>())
             .ToList();
 
@@ -75,52 +80,67 @@ public class ChoiceService
         return Result.Success(addedEntities.Adapt<List<ChoiceDto>>());
     }
 
-    private async Task<(bool,Result<List<ChoiceDto>>)> ValidateConsequences(List<CreateChoiceDto> choices)
+    private Task<(bool, Result<List<ChoiceDto>>)> ValidateConsequences(List<CreateChoiceDto> choices)
     {
         foreach (var choice in choices)
         {
             if (choice.ConsequenceId.HasValue)
             {
-                var consequence = await unitOfWork.GetRepository<Consequence>()
-                    .FindAsync(c => c.ConsequenceId == choice.ConsequenceId.Value);
+                var consequence = unitOfWork.GetRepository<Consequence>()
+                    .FindAll(c => c.ConsequenceId == choice.ConsequenceId.Value, ["Beat"])
+                    .FirstOrDefault();
 
                 if (consequence == null)
-                    return (false,Result.Failure<List<ChoiceDto>>(ChoiceErrors.InvalidConsequence));
+                    return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                        (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.InvalidConsequence)));
+
+                if (consequence.Beat != null && (consequence.Beat.IsAiGenerated || consequence.Beat.PlayerId != null))
+                    return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                        (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.DynamicBeatForbidden)));
             }
         }
 
-        return (true,null!);
+        return Task.FromResult<(bool, Result<List<ChoiceDto>>)>((true, null!));
     }
 
-    private async Task<(bool,Result<List<ChoiceDto>>)> ValidateBeatsOfChoices(List<CreateChoiceDto> choices)
+    private Task<(bool, Result<List<ChoiceDto>>)> ValidateBeatsOfChoices(List<CreateChoiceDto> choices)
     {
         var beatIds = choices.Select(c => c.BeatId).Distinct();
         foreach (var beatId in beatIds)
         {
-            var beat = await unitOfWork.GetRepository<StoryBeat>()
-                .FindAsync(b => b.BeatId == beatId, new string[] { "Choices" });
+            var beat = unitOfWork.GetRepository<StoryBeat>()
+                .FindAll(b => b.BeatId == beatId, ["Choices"])
+                .FirstOrDefault();
 
             if (beat == null)
-                return (false,Result.Failure<List<ChoiceDto>>(ChoiceErrors.BeatNotFound));
+                return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                    (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.BeatNotFound)));
+
+            if (beat.IsAiGenerated || beat.PlayerId != null)
+                return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                    (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.DynamicBeatForbidden)));
 
             if (!beat.HasChoices)
-                return (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.NotAllowedToAddChoice));
+                return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                    (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.NotAllowedToAddChoice)));
 
             int existingCount = beat.Choices?.Count ?? 0;
             int newCount = choices.Count(c => c.BeatId == beatId);
 
             if (existingCount + newCount > 4)
-                return (false,Result.Failure<List<ChoiceDto>>(ChoiceErrors.ExceedsMaxChoices));
+                return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                    (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.ExceedsMaxChoices)));
 
             if (beat.Choices != null)
             {
                 var newIndexesForBeat = choices.Where(c => c.BeatId == beatId).Select(c => c.ChoiceIndex);
                 if (beat.Choices.Any(existing => newIndexesForBeat.Contains(existing.ChoiceIndex)))
-                    return (false,Result.Failure<List<ChoiceDto>>(ChoiceErrors.DuplicateChoiceIndex));
+                    return Task.FromResult<(bool, Result<List<ChoiceDto>>)>(
+                        (false, Result.Failure<List<ChoiceDto>>(ChoiceErrors.DuplicateChoiceIndex)));
             }
         }
 
-        return (true,null!);
+        return Task.FromResult<(bool, Result<List<ChoiceDto>>)>((true, null!));
     }
 
     private static bool ValidateChoices(List<CreateChoiceDto> choices, out Result<List<ChoiceDto>> result)
@@ -168,54 +188,109 @@ public class ChoiceService
 
     public async Task<Result<ChoiceDto>> SubmitChoice(int choiceid, int PlayerId)
     {
+        if (choiceid <= 0 || PlayerId <= 0)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.InvalidId);
+
         var player = await unitOfWork.GetRepository<Player>()
-            .FindAsync(p => p.PlayerId == PlayerId,new string [] {"ShiftProgresses"});
+            .FindAsync(p => p.PlayerId == PlayerId);
 
-        var choice = await unitOfWork.GetRepository<Choice>()
-            .FindAsync(c => c.ChoiceId == choiceid,new string[] {"Beat.Shift"});
+        if (player == null)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.PlayerNotFound);
 
-        if (choice.Beat.ShiftId != player.CurrentShiftId)
-            return Result.Failure<ChoiceDto>(new Error("Forbidden.Access","You are not allowed to access this choice."));
+        if (!player.CurrentShiftId.HasValue || player.CurrentShiftId.Value <= 0)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.ShiftMismatch);
 
-        var PlayerChoice = new PlayerChoice()
+        var choice = unitOfWork.GetRepository<Choice>()
+            .FindAll(
+                c => c.ChoiceId == choiceid,
+                ["Beat", "Beat.Shift", "Consequence", "Consequence.Beat"])
+            .FirstOrDefault();
+
+        if (choice == null)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.ChoiceNotFound);
+
+        if (choice.Beat == null)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.BeatNotFound);
+
+        if (choice.Beat.PlayerId.HasValue && choice.Beat.PlayerId.Value != PlayerId)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.ForbiddenAccess);
+
+        if (choice.Beat.ShiftId != player.CurrentShiftId.Value)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.ShiftMismatch);
+
+        bool alreadySubmitted = unitOfWork.GetRepository<PlayerChoice>()
+            .FindAll(pc => pc.PlayerId == PlayerId && pc.BeatId == choice.BeatId)
+            .Any();
+
+        if (alreadySubmitted)
+            return Result.Failure<ChoiceDto>(ChoiceErrors.DuplicateChoiceSubmission);
+
+        // Invariant 2: choices belonging to AI-generated beats never count toward assessment or gate progression.
+        bool isEvaluateable = choice.IsEvaluateable && !choice.Beat.IsAiGenerated;
+
+        PlayerShiftProgress? playerProgress = null;
+        if (isEvaluateable)
+        {
+            playerProgress = await unitOfWork.GetRepository<PlayerShiftProgress>()
+                .FindAsync(p => p.PlayerId == PlayerId && p.ShiftId == player.CurrentShiftId.Value);
+
+            if (playerProgress == null)
+                return Result.Failure<ChoiceDto>(ChoiceErrors.ShiftProgressNotFound);
+        }
+
+        if (choice.ConsequenceId.HasValue)
+        {
+            var consequenceBeat = choice.Consequence?.Beat;
+            if (consequenceBeat != null &&
+                consequenceBeat.PlayerId.HasValue &&
+                consequenceBeat.PlayerId.Value != PlayerId)
+            {
+                return Result.Failure<ChoiceDto>(ChoiceErrors.ForbiddenAccess);
+            }
+
+            int consequenceId = choice.ConsequenceId.Value;
+            bool alreadyQueued = unitOfWork.GetRepository<ConsequenceQueue>()
+                .FindAll(cq => cq.PlayerId == PlayerId && cq.ConsequenceId == consequenceId)
+                .Any();
+
+            if (!alreadyQueued)
+            {
+                await unitOfWork.GetRepository<ConsequenceQueue>().AddAsync(new ConsequenceQueue
+                {
+                    PlayerId      = PlayerId,
+                    ConsequenceId = consequenceId
+                });
+            }
+        }
+
+        await unitOfWork.GetRepository<PlayerChoice>().AddAsync(new PlayerChoice
         {
             PlayerId = PlayerId,
-            ChoiceId = choiceid,
-            BeatId = choice.BeatId,
-            Tier = choice.Tier
-        };
-        await unitOfWork.GetRepository<PlayerChoice>()
-            .AddAsync(PlayerChoice);
+            ChoiceId = choice.ChoiceId,
+            BeatId   = choice.BeatId,
+            Tier     = choice.Tier
+        });
 
-        if (choice.ConsequenceId != null)
-        {
-            var ConsequenceQueue = new ConsequenceQueue()
-            {
-                PlayerId = PlayerId,
-                ConsequenceId = Convert.ToInt32(choice.ConsequenceId)
-            };
-            await unitOfWork.GetRepository<ConsequenceQueue>()
-                .AddAsync(ConsequenceQueue);
-        }
-        if(choice.IsEvaluateable)
-        {
-            var playerProgress = player.ShiftProgresses.FirstOrDefault(p => p.ShiftId == player.CurrentShiftId)!;
+        if (isEvaluateable && playerProgress != null)
             playerProgress.GateAttempts++;
-            await unitOfWork.SaveAsync();
 
-            // ── Event telemetry (fire-and-forget, after persistence) ──
+        await unitOfWork.SaveAsync();
+
+        // ── Event telemetry (fire-and-forget, after persistence) ──
+        if (isEvaluateable)
+        {
             eventPublisher.Publish(new GameEventDto(
                 PlayerId,
                 EventType:   AssessmentWeights.EventTypes.ChoiceSubmission,
-                ConceptTag: choice.Beat.Shift.ConceptTag,
+                ConceptTag:  choice.Beat.Shift?.ConceptTag ?? default,
                 Tier:        choice.Tier.ToString(),
                 PayloadJson: JsonSerializer.Serialize(new
                 {
                     beatId   = choice.BeatId,
                     choiceId = choice.ChoiceId
                 })));
-
         }
+
         return Result.Success(choice.Adapt<ChoiceDto>());
     }
 
@@ -233,16 +308,28 @@ public class ChoiceService
         if (choice == null)
             return Result.Failure<ChoiceDto>(ChoiceErrors.ChoiceNotFound);
 
+        var parentBeat = unitOfWork.GetRepository<StoryBeat>()
+            .FindAll(b => b.BeatId == choice.BeatId)
+            .Select(b => new { b.IsAiGenerated, b.PlayerId })
+            .FirstOrDefault();
+
+        if (parentBeat != null && (parentBeat.IsAiGenerated || parentBeat.PlayerId != null))
+            return Result.Failure<ChoiceDto>(ChoiceErrors.DynamicBeatForbidden);
+
         if (choicedto.ChoiceText != null && string.IsNullOrWhiteSpace(choicedto.ChoiceText))
             return Result.Failure<ChoiceDto>(ChoiceErrors.InvalidChoiceText);
 
         if (choicedto.ConsequenceId.HasValue && choicedto.ConsequenceId != choice.ConsequenceId)
         {
-            var consequence = await unitOfWork.GetRepository<Consequence>()
-                .FindAsync(c => c.ConsequenceId == choicedto.ConsequenceId.Value);
+            var consequence = unitOfWork.GetRepository<Consequence>()
+                .FindAll(c => c.ConsequenceId == choicedto.ConsequenceId.Value, ["Beat"])
+                .FirstOrDefault();
 
             if (consequence == null)
                 return Result.Failure<ChoiceDto>(ChoiceErrors.InvalidConsequence);
+
+            if (consequence.Beat != null && (consequence.Beat.IsAiGenerated || consequence.Beat.PlayerId != null))
+                return Result.Failure<ChoiceDto>(ChoiceErrors.DynamicBeatForbidden);
         }
 
         choice.ChoiceText = choicedto.ChoiceText ?? choice.ChoiceText;

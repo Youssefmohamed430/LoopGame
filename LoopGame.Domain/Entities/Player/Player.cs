@@ -25,4 +25,6 @@ public class Player
     public ICollection<Assessment.AssessmentEvent> AssessmentEvents { get; set; } = [];
     public ICollection<Assessment.ConceptMasterySnapshot> MasterySnapshots { get; set; } = [];
     public ICollection<Audit.AiGenerationLog> AiGenerationLogs { get; set; } = [];
+    public ICollection<StoryBeat> StoryBeats { get; set; } = [];
+    public ICollection<Audit.NarrativeGenerationLog> NarrativeGenerationLogs { get; set; } = [];
 }

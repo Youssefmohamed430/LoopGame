@@ -35,6 +35,7 @@ public static class ResultHttpMapping
         "SideTask.TaskNotFound" or
         "SideTask.NoActiveTask" or
         "Save.SaveNotFound" or
+        "Save.PlayerNotFound" or
         "Admin.ShiftNotFound" or
         "Admin.TaskNotFound" or
         "Admin.PlayerNotFound" or
@@ -67,16 +68,20 @@ public static class ResultHttpMapping
         // ── Choice / player errors → 404 / 400 already covered by ChoiceErrors ─
         "Choice.PlayerNotFound" or
         "Choice.BeatNotFound"   or
-        "Choice.ChoiceNotFound"                                     => 404,
+        "Choice.ChoiceNotFound" or
+        "Choice.ShiftProgressNotFound"                              => 404,
 
-        "Choice.ShiftMismatch"                                      => 409,
+        "Choice.ShiftMismatch"  or
+        "Choice.DuplicateSubmission"                                => 409,
 
         // ── Assessment errors → 404 / 400 ─────────────────────────────
         "Assessment.PlayerNotFound" or
         "Assessment.ShiftNotFound"  or
         "Assessment.NoEventsFound"                                  => 404,
 
-        "Forbidden.Access"                                          => 403,
+        "Forbidden.Access" or
+        "Narrative.DynamicBeatForbidden" or
+        "Choice.DynamicBeatForbidden"                               => 403,
 
         // ── Auth errors → 401 / 404 / 400 ──────────────────────────────────
         "Auth.InvalidCredentials" or

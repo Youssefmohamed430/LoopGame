@@ -52,8 +52,9 @@ public class AppDbContext
     public DbSet<ConceptMasterySnapshot> ConceptMasterySnapshots => Set<ConceptMasterySnapshot>();
 
     // ── AI Pipeline & Audit ──────────────────────────────────────
-    public DbSet<AiGenerationLog> AiGenerationLogs => Set<AiGenerationLog>();
-    public DbSet<AuditLog>        AuditLogs         => Set<AuditLog>();
+    public DbSet<AiGenerationLog>        AiGenerationLogs        => Set<AiGenerationLog>();
+    public DbSet<NarrativeGenerationLog> NarrativeGenerationLogs => Set<NarrativeGenerationLog>();
+    public DbSet<AuditLog>               AuditLogs               => Set<AuditLog>();
     public DbSet<OtpRecord> OtpRecords => Set<OtpRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

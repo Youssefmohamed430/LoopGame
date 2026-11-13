@@ -85,4 +85,13 @@ public static class NarrativeErrors
     public static readonly Error ConsequenceBeatCannotChangeShift =
         new("Narrative.ConsequenceBeatCannotChangeShift",
             "A consequence beat's shift is derived from its content. Moving it between shifts is not supported while the consequence is active.");
+
+    // ── Ownership & isolation errors ─────────────────────────────────────────
+    public static readonly Error BeatAccessForbidden =
+        new("Forbidden.Access",
+            "You are not allowed to access this story beat.");
+
+    public static readonly Error DynamicBeatForbidden =
+        new("Narrative.DynamicBeatForbidden",
+            "AI-generated or player-owned story beats cannot be accessed or modified through canonical content management.");
 }
